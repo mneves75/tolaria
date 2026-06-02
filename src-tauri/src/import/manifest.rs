@@ -13,6 +13,7 @@
 //! keeping the comparison logic hash-agnostic makes it pure and fully testable.
 
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
@@ -86,6 +87,30 @@ impl ImportManifest {
     /// destination, or `None` when no file exists there now.
     pub fn decide(&self, source_id: &str, on_disk_hash: Option<&str>) -> ReimportDecision {
         resolve_reimport(self.entry(source_id), on_disk_hash)
+    }
+
+    /// Load the manifest at `path`, or return a fresh one for `source` if the
+    /// file does not exist yet (the first import).
+    pub fn load_or_new(path: &Path, source: &str) -> Result<Self, String> {
+        if !path.exists() {
+            return Ok(Self::new(source));
+        }
+        let json = std::fs::read_to_string(path)
+            .map_err(|err| format!("failed to read manifest {}: {err}", path.display()))?;
+        serde_json::from_str(&json)
+            .map_err(|err| format!("failed to parse manifest {}: {err}", path.display()))
+    }
+
+    /// Write the manifest to `path`, creating parent directories as needed.
+    pub fn save(&self, path: &Path) -> Result<(), String> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|err| format!("failed to create {}: {err}", parent.display()))?;
+        }
+        let json = serde_json::to_string_pretty(self)
+            .map_err(|err| format!("failed to serialize manifest: {err}"))?;
+        std::fs::write(path, json)
+            .map_err(|err| format!("failed to write manifest {}: {err}", path.display()))
     }
 }
 
@@ -234,5 +259,35 @@ mod tests {
 
         let entry: ManifestEntry = serde_json::from_str(json).expect("deserialize");
         assert!(entry.attachment_paths.is_empty());
+    }
+
+    #[test]
+    fn load_or_new_returns_fresh_when_file_absent() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("nested").join("manifest.json");
+        let manifest = ImportManifest::load_or_new(&path, "apple-notes").unwrap();
+        assert_eq!(manifest, ImportManifest::new("apple-notes"));
+    }
+
+    #[test]
+    fn save_then_load_round_trips() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("sub").join("manifest.json");
+        let mut manifest = ImportManifest::new("apple-notes");
+        manifest.upsert(entry("apple-1", "hash-a"));
+
+        manifest.save(&path).expect("save");
+        assert!(path.exists());
+        let loaded = ImportManifest::load_or_new(&path, "apple-notes").unwrap();
+        assert_eq!(manifest, loaded);
+    }
+
+    #[test]
+    fn load_or_new_errors_on_malformed_file() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("manifest.json");
+        std::fs::write(&path, "{ not valid json").unwrap();
+        let err = ImportManifest::load_or_new(&path, "apple-notes").unwrap_err();
+        assert!(err.contains("parse manifest"), "unexpected error: {err}");
     }
 }
