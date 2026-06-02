@@ -41,6 +41,7 @@ pub use rename::{
     MoveNoteToFolderRequest, MoveNoteToWorkspaceRequest, RenameNoteFilenameRequest,
     RenameNoteRequest, RenameResult,
 };
+pub(crate) use rename::title_to_slug;
 pub use title_sync::{sync_title_on_open, SyncAction};
 pub use trash::{batch_delete_notes, delete_note};
 pub use views::{
