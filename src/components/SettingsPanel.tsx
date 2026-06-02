@@ -85,6 +85,7 @@ import { useSettingsPanelAutofocus, useSettingsPanelFocusTrap } from './useSetti
 
 interface SettingsPanelProps {
   open: boolean
+  vaultPath?: string
   settings: Settings
   aiAgentsStatus?: AiAgentsStatus
   initialSectionId?: string | null
@@ -129,6 +130,7 @@ interface SettingsDraft {
 
 interface SettingsBodyProps {
   t: Translate
+  vaultPath?: string
   pullInterval: number
   setPullInterval: (value: number) => void
   gitFeaturesEnabled: boolean
@@ -348,6 +350,7 @@ function SettingsPanelInner({
   vaults,
   defaultWorkspacePath,
   onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity,
+  vaultPath,
   isGitVault,
   explicitOrganizationEnabled,
   onSaveExplicitOrganization,
@@ -459,6 +462,7 @@ function SettingsPanelInner({
           isGitVault={isGitVault}
           aiAgentsStatus={aiAgentsStatus}
           onCopyMcpConfig={onCopyMcpConfig}
+          vaultPath={vaultPath}
           vaults={vaults ?? []}
           defaultWorkspacePath={defaultWorkspacePath}
           {...{ onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity }}
@@ -505,6 +509,7 @@ function SettingsHeader({ onClose, t }: { onClose: () => void; t: Translate }) {
 
 interface SettingsBodyFromDraftProps {
   t: Translate
+  vaultPath?: string
   draft: SettingsDraft
   locale: AppLocale
   systemLocale: AppLocale
@@ -532,6 +537,7 @@ function SettingsBodyFromDraft({
   vaults,
   defaultWorkspacePath,
   onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity,
+  vaultPath,
   setThemeMode,
   setHideGitignoredFiles,
   setAllNotesFileVisibility,
@@ -584,6 +590,7 @@ function SettingsBodyFromDraft({
       setAllNotesFileVisibility={setAllNotesFileVisibility}
       multiWorkspaceEnabled={draft.multiWorkspaceEnabled}
       setMultiWorkspaceEnabled={(value) => updateDraft('multiWorkspaceEnabled', value)}
+      vaultPath={vaultPath}
       vaults={vaults}
       defaultWorkspacePath={defaultWorkspacePath}
       {...{ onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity }}
@@ -700,6 +707,7 @@ function SettingsSyncAndAppearanceSections({
 
 function SettingsContentSections({
   t,
+  vaultPath,
   dateDisplayFormat,
   setDateDisplayFormat,
   defaultNoteWidth,
@@ -717,6 +725,7 @@ function SettingsContentSections({
     <SettingsSection id={SETTINGS_SECTION_IDS.content}>
       <VaultContentSettingsSection
         t={t}
+        vaultPath={vaultPath}
         dateDisplayFormat={dateDisplayFormat}
         setDateDisplayFormat={setDateDisplayFormat}
         defaultNoteWidth={defaultNoteWidth}

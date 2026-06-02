@@ -10,11 +10,14 @@ import {
   SettingsRow,
   SettingsSwitchRow,
 } from './SettingsControls'
+import { ImportAppleNotesSection } from './ImportAppleNotesSection'
+import { isMac } from '../utils/platform'
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string
 
 interface VaultContentSettingsSectionProps {
   t: Translate
+  vaultPath?: string
   dateDisplayFormat: DateDisplayFormat
   setDateDisplayFormat: (value: DateDisplayFormat) => void
   defaultNoteWidth: NoteWidthMode
@@ -57,6 +60,7 @@ function buildDateDisplayOptions(t: Translate): Array<{ value: DateDisplayFormat
 
 export function VaultContentSettingsSection({
   t,
+  vaultPath,
   dateDisplayFormat,
   setDateDisplayFormat,
   defaultNoteWidth,
@@ -156,6 +160,8 @@ export function VaultContentSettingsSection({
           testId="settings-all-notes-show-unsupported"
         />
       </SettingsGroup>
+
+      {isMac() && vaultPath ? <ImportAppleNotesSection t={t} vaultPath={vaultPath} /> : null}
     </>
   )
 }
