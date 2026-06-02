@@ -64,7 +64,11 @@ describe('release workflow macOS artifact names', () => {
     )
 
     expect(alphaWorkflow).toContain('require_windows_authenticode: false')
-    expect(stableWorkflow).toContain('require_windows_authenticode: true')
+    // Stable gates Authenticode on the release tag (see the documented one-time
+    // exception in release-stable.yml) and must never unconditionally disable
+    // signing for stable builds.
+    expect(stableWorkflow).toContain('require_windows_authenticode:')
+    expect(stableWorkflow).not.toContain('require_windows_authenticode: false')
     expect(artifactWorkflow).toContain('require_windows_authenticode:')
     expect(artifactWorkflow).toContain('WINDOWS_CODE_SIGNING_CERTIFICATE')
     expect(artifactWorkflow).toContain('WINDOWS_CERTIFICATE')
