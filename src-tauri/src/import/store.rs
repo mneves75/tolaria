@@ -94,7 +94,8 @@ const ENUMERATE_NOTES_SQL: &str = "\
            o.ZISPASSWORDPROTECTED, d.ZDATA \
     FROM ZICCLOUDSYNCINGOBJECT o \
     JOIN ZICNOTEDATA d ON d.ZNOTE = o.Z_PK \
-    WHERE d.ZDATA IS NOT NULL";
+    WHERE d.ZDATA IS NOT NULL \
+    ORDER BY o.Z_PK";
 
 /// Read every note that has a body from the store.
 pub fn enumerate_notes(conn: &Connection) -> Result<Vec<RawNote>, String> {
