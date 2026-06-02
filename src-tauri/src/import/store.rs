@@ -7,9 +7,12 @@
 //! so the WAL is merged, and [`enumerate_notes`] reads the note rows.
 //!
 //! The schema (table/column names and the note-to-body join) is derived from
-//! the threeplanetssoftware / Obsidian reference implementations and must be
-//! validated against real databases across macOS versions before this is
-//! considered trustworthy.
+//! the threeplanetssoftware / Obsidian reference implementations and validated
+//! against a real macOS database (2,274 notes, 99.9% body decode). That database
+//! used `ZCREATIONDATE3` / `ZMODIFICATIONDATE1` rather than the older
+//! `ZCREATIONDATE` / `ZMODIFIEDDATE1`, so the date columns are resolved at
+//! runtime ([`build_enumerate_sql`]); other macOS versions should be checked the
+//! same way.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -89,18 +92,29 @@ pub fn open_checkpointed(db_copy: &Path) -> Result<Connection, String> {
     Ok(conn)
 }
 
-const ENUMERATE_NOTES_SQL: &str = "\
-    SELECT o.ZIDENTIFIER, o.ZTITLE1, o.ZCREATIONDATE, o.ZMODIFIEDDATE1, \
-           o.ZISPASSWORDPROTECTED, d.ZDATA \
-    FROM ZICCLOUDSYNCINGOBJECT o \
-    JOIN ZICNOTEDATA d ON d.ZNOTE = o.Z_PK \
-    WHERE d.ZDATA IS NOT NULL \
-    ORDER BY o.Z_PK";
+// The creation/modification date columns are version-volatile: real databases
+// have been seen using ZCREATIONDATE3 + ZMODIFICATIONDATE1 where older
+// references used ZCREATIONDATE + ZMODIFIEDDATE1, and a missing column is a hard
+// SQL error. So the date columns are chosen at runtime from the first candidate
+// that actually exists, most-recent-naming first.
+const CREATED_CANDIDATES: [&str; 4] = [
+    "ZCREATIONDATE3",
+    "ZCREATIONDATE2",
+    "ZCREATIONDATE1",
+    "ZCREATIONDATE",
+];
+const MODIFIED_CANDIDATES: [&str; 4] = [
+    "ZMODIFICATIONDATE1",
+    "ZMODIFICATIONDATE",
+    "ZMODIFIEDDATE1",
+    "ZMODIFIEDDATE",
+];
 
 /// Read every note that has a body from the store.
 pub fn enumerate_notes(conn: &Connection) -> Result<Vec<RawNote>, String> {
+    let sql = build_enumerate_sql(conn)?;
     let mut stmt = conn
-        .prepare(ENUMERATE_NOTES_SQL)
+        .prepare(&sql)
         .map_err(|err| format!("failed to prepare note query: {err}"))?;
     let rows = stmt
         .query_map([], row_to_note)
@@ -110,6 +124,47 @@ pub fn enumerate_notes(conn: &Connection) -> Result<Vec<RawNote>, String> {
         notes.push(row.map_err(|err| format!("failed to read note row: {err}"))?);
     }
     Ok(notes)
+}
+
+/// Build the enumeration query, resolving the volatile date columns against the
+/// columns this database actually has.
+fn build_enumerate_sql(conn: &Connection) -> Result<String, String> {
+    let columns = table_columns(conn, "ZICCLOUDSYNCINGOBJECT")?;
+    let created = date_expr(&columns, &CREATED_CANDIDATES);
+    let modified = date_expr(&columns, &MODIFIED_CANDIDATES);
+    Ok(format!(
+        "SELECT o.ZIDENTIFIER, o.ZTITLE1, {created}, {modified}, o.ZISPASSWORDPROTECTED, d.ZDATA \
+         FROM ZICCLOUDSYNCINGOBJECT o \
+         JOIN ZICNOTEDATA d ON d.ZNOTE = o.Z_PK \
+         WHERE d.ZDATA IS NOT NULL \
+         ORDER BY o.Z_PK"
+    ))
+}
+
+/// The `o.<column>` expression for the first candidate that exists, or `NULL`
+/// when none do (so the note still imports, just without that date).
+fn date_expr(columns: &std::collections::HashSet<String>, candidates: &[&str]) -> String {
+    candidates
+        .iter()
+        .find(|name| columns.contains(**name))
+        .map(|name| format!("o.{name}"))
+        .unwrap_or_else(|| "NULL".to_string())
+}
+
+fn table_columns(conn: &Connection, table: &str) -> Result<std::collections::HashSet<String>, String> {
+    // PRAGMA does not accept a bound parameter for the table name; the value is a
+    // hardcoded constant, never user input.
+    let mut stmt = conn
+        .prepare(&format!("PRAGMA table_info('{table}')"))
+        .map_err(|err| format!("failed to read schema for {table}: {err}"))?;
+    let names = stmt
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|err| format!("failed to list columns for {table}: {err}"))?;
+    let mut set = std::collections::HashSet::new();
+    for name in names {
+        set.insert(name.map_err(|err| format!("failed to read column name: {err}"))?);
+    }
+    Ok(set)
 }
 
 fn row_to_note(row: &rusqlite::Row) -> rusqlite::Result<RawNote> {
@@ -270,5 +325,75 @@ mod tests {
         let work = TempDir::new().unwrap();
         let err = copy_database(src_dir.path(), work.path()).unwrap_err();
         assert!(err.contains("failed to copy"), "unexpected error: {err}");
+    }
+
+    // Mirrors the column names a current macOS NoteStore.sqlite actually uses
+    // (ZCREATIONDATE3 / ZMODIFICATIONDATE1), verified by the real-database spike.
+    #[test]
+    fn resolves_modern_date_columns() {
+        let src_dir = TempDir::new().unwrap();
+        let conn = Connection::open(src_dir.path().join("NoteStore.sqlite")).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE ZICCLOUDSYNCINGOBJECT (
+                 Z_PK INTEGER PRIMARY KEY, ZIDENTIFIER TEXT, ZTITLE1 TEXT,
+                 ZCREATIONDATE3 REAL, ZMODIFICATIONDATE1 REAL,
+                 ZISPASSWORDPROTECTED INTEGER, ZNOTE INTEGER);
+             CREATE TABLE ZICNOTEDATA (Z_PK INTEGER PRIMARY KEY, ZNOTE INTEGER, ZDATA BLOB);",
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO ZICCLOUDSYNCINGOBJECT
+                (Z_PK, ZIDENTIFIER, ZTITLE1, ZCREATIONDATE3, ZMODIFICATIONDATE1)
+             VALUES (1, 'uuid-1', 'Note', 615178251.0, 791878249.0)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO ZICNOTEDATA (Z_PK, ZNOTE, ZDATA) VALUES (1, 1, ?1)",
+            [&encode_plain_note_gzip("hi")],
+        )
+        .unwrap();
+        drop(conn);
+
+        let work = TempDir::new().unwrap();
+        let copy = copy_database(src_dir.path(), work.path()).unwrap();
+        let conn = open_checkpointed(&copy).unwrap();
+        let notes = enumerate_notes(&conn).unwrap();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].created, Some(615_178_251.0));
+        assert_eq!(notes[0].modified, Some(791_878_249.0));
+    }
+
+    #[test]
+    fn enumerates_when_no_date_columns_exist() {
+        let src_dir = TempDir::new().unwrap();
+        let conn = Connection::open(src_dir.path().join("NoteStore.sqlite")).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE ZICCLOUDSYNCINGOBJECT (
+                 Z_PK INTEGER PRIMARY KEY, ZIDENTIFIER TEXT, ZTITLE1 TEXT,
+                 ZISPASSWORDPROTECTED INTEGER, ZNOTE INTEGER);
+             CREATE TABLE ZICNOTEDATA (Z_PK INTEGER PRIMARY KEY, ZNOTE INTEGER, ZDATA BLOB);",
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO ZICCLOUDSYNCINGOBJECT (Z_PK, ZIDENTIFIER, ZTITLE1) VALUES (1, 'uuid-1', 'Note')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO ZICNOTEDATA (Z_PK, ZNOTE, ZDATA) VALUES (1, 1, ?1)",
+            [&encode_plain_note_gzip("hi")],
+        )
+        .unwrap();
+        drop(conn);
+
+        let work = TempDir::new().unwrap();
+        let copy = copy_database(src_dir.path(), work.path()).unwrap();
+        let conn = open_checkpointed(&copy).unwrap();
+        let notes = enumerate_notes(&conn).unwrap();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].created, None);
+        assert_eq!(notes[0].modified, None);
+        assert_eq!(notes[0].to_markdown().unwrap(), "hi");
     }
 }
