@@ -14,3 +14,4 @@ pub mod body;
 pub mod convert;
 pub mod manifest;
 pub mod materialize;
+pub mod store;

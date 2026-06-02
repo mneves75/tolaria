@@ -105,6 +105,34 @@ fn map_baseline(superscript: i32) -> Baseline {
     }
 }
 
+/// Build a gzipped note-body blob holding `text` as a single body paragraph.
+/// Test-only helper shared with the `store` module's tests so they can insert a
+/// real `ZICNOTEDATA.ZDATA` value.
+#[cfg(test)]
+pub(crate) fn encode_plain_note_gzip(text: &str) -> Vec<u8> {
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
+    use std::io::Write;
+
+    let store = proto::NoteStoreProto {
+        document: proto::Document {
+            version: 1,
+            note: proto::Note {
+                note_text: text.to_string(),
+                attribute_run: vec![proto::AttributeRun {
+                    length: text.encode_utf16().count() as i32,
+                    ..Default::default()
+                }],
+            },
+        },
+    };
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder
+        .write_all(&store.encode_to_vec())
+        .expect("gzip write");
+    encoder.finish().expect("gzip finish")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{note_body_to_markdown, proto};
