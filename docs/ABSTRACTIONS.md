@@ -400,6 +400,10 @@ Domain command builders still own context-sensitive command-palette entries, ava
 
 ## File System Integration
 
+### Apple Notes Import (Rust, macOS)
+
+`src-tauri/src/import/` reads a macOS Apple Notes store and writes notes into the vault. The pipeline is layered and each layer is pure/tested in isolation: `store` (WAL-safe copy of `NoteStore.sqlite` + read-write checkpoint + note enumeration, with runtime-resolved date columns since Apple renames them across versions), `body` (gzip + protobuf decode using the vendored MIT `notestore.proto` compiled via protox/prost), `convert` (Apple formatting runs → markdown), `materialize` (title → slug filename via the app's `title_to_slug`), `assemble` (note → markdown + Core Data → Unix dates), `manifest` (the run manifest that makes re-import idempotent and never clobbers user-edited notes), and `run` (orchestration). The `import_apple_notes` Tauri command resolves the Apple Notes container, runs the import off-thread into `<vault>/Apple Notes`, persists the manifest under `<vault>/.tolaria/`, and maps a Full-Disk-Access permission failure to an `FDA_REQUIRED:` message the UI acts on. See ADRs 0137–0140. CRDT tables, attachments, and encrypted notes are not yet imported.
+
 ### Vault Scanning (Rust)
 
 `vault::scan_vault(path)` in `src-tauri/src/vault/mod.rs`:

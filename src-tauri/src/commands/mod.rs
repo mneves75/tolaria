@@ -1,5 +1,6 @@
 mod ai;
 mod app_icon;
+mod apple_notes_import;
 mod clipboard;
 mod delete;
 mod folders;
@@ -17,6 +18,7 @@ use std::borrow::Cow;
 
 pub use ai::*;
 pub use app_icon::*;
+pub use apple_notes_import::*;
 pub use clipboard::*;
 pub use delete::*;
 pub use folders::*;
