@@ -10,4 +10,5 @@
 //! materialization land in later slices, behind their own ADRs and reusing the
 //! existing `vault` machinery (`filename_rules`, `rename`, `title_sync`).
 
+pub mod convert;
 pub mod manifest;
