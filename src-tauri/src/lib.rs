@@ -12,6 +12,7 @@ pub mod gemini_cli;
 mod gemini_config;
 mod gemini_discovery;
 pub mod git;
+pub mod import;
 pub mod kiro_cli;
 mod kiro_discovery;
 #[cfg(any(test, all(desktop, target_os = "linux")))]
