@@ -74,6 +74,9 @@
         <tr><td>Final code-review subagent</td><td class="ok">Clear: no critical/high blockers, previous unlabeled-listbox medium resolved. Residual risk noted that editor wikilink suggestions use the default English catalog because the third-party suggestion controller does not pass app locale into that custom component.</td></tr>
         <tr><td><code>pnpm docs:build</code></td><td class="ok">Passed; generated 42 agent docs and built VitePress.</td></tr>
         <tr><td><code>BASE_URL="http://127.0.0.1:5201" pnpm playwright:smoke</code></td><td class="ok">Passed: 54/54 Chromium smoke tests in 4.4 minutes.</td></tr>
+        <tr><td><code>LLVM_COV="$(xcrun -f llvm-cov)" LLVM_PROFDATA="$(xcrun -f llvm-profdata)" git push origin main</code></td><td class="ok">Passed pre-push lint, build, frontend coverage, Rust lint/coverage, smoke tests, and the local CodeScene skip gate, then pushed <code>b2b42835</code> to <code>origin/main</code>. Pre-push duration: 7 minutes 26 seconds; smoke suite: 54/54 passed; Rust line coverage in hook: 86.84%.</td></tr>
+        <tr><td><code>gh run list --repo mneves75/tolaria --commit b2b42835 --limit 10 --json ...</code></td><td class="warn">Returned <code>[]</code>. Actions permissions are enabled with <code>{"enabled":true,"allowed_actions":"all","sha_pinning_required":false}</code>, but GitHub did not expose a run for this push during closeout.</td></tr>
+        <tr><td><code>gh api repos/mneves75/tolaria/pages</code></td><td class="warn">Returned HTTP 404, so GitHub Pages deployment could not be verified or triggered as a staging target.</td></tr>
         <tr><td>Browser screenshots</td><td class="ok">Desktop: <code>/tmp/tolaria-review-desktop-recheck.png</code>. Mobile: <code>/tmp/tolaria-review-mobile.png</code>. Browser mode rendered nonblank AI onboarding; existing mock/native warnings appeared for MCP WebSocket and Tauri window constraints.</td></tr>
         <tr><td><code>git diff --check</code></td><td class="ok">Passed.</td></tr>
         <tr><td><code>git status --short -- demo-vault demo-vault-v2</code></td><td class="ok">No output; demo vault fixtures are clean.</td></tr>
@@ -86,10 +89,11 @@
       <li class="warn">New non-English strings are English fallbacks until Lara credentials are available and <code>pnpm l10n:translate</code> can run.</li>
       <li class="warn">The editor wikilink suggestion menu has an accessible catalog-backed label but currently uses <code>DEFAULT_APP_LOCALE</code>; making it fully locale-aware requires plumbing app locale through the third-party suggestion-controller component boundary.</li>
       <li class="warn">Medium UX follow-ups remain for legacy custom context-menu semantics, loading/error-state refinement, and long AI transcript performance profiling.</li>
-      <li class="warn">No dedicated staging deployment target was found in <code>package.json</code>. GitHub workflows publish release/docs artifacts when authorized; staging deploy proof depends on a real remote run after push.</li>
+      <li class="warn">No dedicated staging deployment target was found in <code>package.json</code> or the workflow set. The repository has CI, alpha release, stable release, and docs workflows, but no staging workflow or script. GitHub Actions is enabled, yet the pushed commit had no visible Actions runs via <code>gh run list</code> or the Actions API, and the GitHub Pages API returned HTTP 404.</li>
     </ul>
 
     <h2>Release Metadata</h2>
     <p>Version bumped from <code>0.1.1</code> to <code>0.1.2</code> in <code>package.json</code>, <code>src-tauri/tauri.conf.json</code>, <code>src-tauri/Cargo.toml</code>, and the Tolaria package entry in <code>src-tauri/Cargo.lock</code>.</p>
+    <p>Primary release commit: <code>b2b42835 Harden release-blocking trust boundaries and accessibility contracts</code>, pushed to <code>origin/main</code>. This notes update records the post-push deployment evidence and staging blocker.</p>
   </body>
 </html>
