@@ -1,5 +1,6 @@
 import type { ComponentType, SVGAttributes } from 'react'
 import { NoteSearchList } from './NoteSearchList'
+import { DEFAULT_APP_LOCALE, translate } from '../lib/i18n'
 import type { WorkspaceIdentity } from '../types'
 import './WikilinkSuggestionMenu.css'
 
@@ -49,7 +50,8 @@ export function WikilinkSuggestionMenu({ items, selectedIndex, onItemClick }: Wi
           getItemKey={(item, i) => `${item.title}-${item.path ?? i}`}
           onItemClick={(item) => runSuggestionItemClickOnce(item, onItemClick)}
           activateOnMouseDown
-          emptyMessage="No results"
+          listboxLabel={translate(DEFAULT_APP_LOCALE, 'noteList.wikilinkSuggestions')}
+          emptyMessage={translate(DEFAULT_APP_LOCALE, 'noteList.empty.noResults')}
         />
     </div>
   )

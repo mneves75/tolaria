@@ -6,7 +6,6 @@ type ReleaseAssetPayload = {
 type GitHubReleasePayload = {
   assets?: ReleaseAssetPayload[]
   body?: unknown
-  body_html?: unknown
   draft?: unknown
   html_url?: unknown
   name?: unknown
@@ -36,7 +35,6 @@ type ReleaseEntry = {
 
 type ReleaseSections = Record<ReleaseChannel, ReleaseEntry[]>
 
-const RELEASE_BODY_MARKUP_FIELD = ['body', '_', 'html'].join('') as 'body_html'
 const RELEASE_GITHUB_URL_FIELD = ['html', '_url'].join('') as 'html_url'
 
 const RELEASE_HISTORY_PAGE_STYLES = `
@@ -543,37 +541,6 @@ function normalizeText(value: unknown): string | null {
   return trimmedValue.length > 0 ? trimmedValue : null
 }
 
-function normalizeTextAsHtml(valueHtml: unknown): string | null {
-  if (typeof valueHtml !== 'string') return null
-  return valueHtml.length > 0 ? valueHtml : null
-}
-
-function isListMarkerBoundary(character: string | undefined): boolean {
-  return character === undefined || character === '>' || character === '/' || character === ' ' || character === '\t'
-}
-
-function renderedHtmlListItemCount(html: string): number {
-  let count = 0
-  let cursor = 0
-
-  while (cursor < html.length) {
-    const tagStart = html.indexOf('<', cursor)
-    if (tagStart === -1) break
-
-    let tagNameStart = tagStart + 1
-    while (html[tagNameStart] === ' ' || html[tagNameStart] === '\t') tagNameStart += 1
-
-    if (html[tagNameStart] !== '/') {
-      const tagPrefix = html.slice(tagNameStart, tagNameStart + 2).toLowerCase()
-      if (tagPrefix === 'li' && isListMarkerBoundary(html[tagNameStart + 2])) count += 1
-    }
-
-    cursor = tagNameStart + 1
-  }
-
-  return count
-}
-
 function isOrderedMarkdownListItem(line: string): boolean {
   let markerIndex = 0
   while (line[markerIndex] >= '0' && line[markerIndex] <= '9') markerIndex += 1
@@ -598,10 +565,7 @@ function markdownListItemCount(markdown: string): number {
     .length
 }
 
-function releaseNotesListItemCount(renderedMarkup: unknown, markdownFallback: unknown): number {
-  const bodyHtml = normalizeTextAsHtml(renderedMarkup)
-  if (bodyHtml !== null) return renderedHtmlListItemCount(bodyHtml)
-
+function releaseNotesListItemCount(markdownFallback: unknown): number {
   const markdown = normalizeText(markdownFallback)
   return markdown === null ? 0 : markdownListItemCount(markdown)
 }
@@ -672,25 +636,104 @@ function normalizeDownloads(assets: ReleaseAssetPayload[] | undefined): ReleaseD
   return downloads
 }
 
-function buildFallbackReleaseNotesAsHtml(markdownFallback: string): string {
-  const paragraphs = markdownFallback
-    .split(/\n{2,}/)
-    .map(part => part.trim())
-    .filter(part => part.length > 0)
-    .map(part => {
-      const escapedLines = part.split('\n').map(line => escapeMarkupText(line))
-      return `<p>${escapedLines.join('<br>')}</p>`
-    })
+function normalizeMarkdownLinkUrl(rawUrl: string): string | null {
+  const urlText = rawUrl.trim()
+  if (urlText.length === 0) return null
 
-  return /* safe */ paragraphs.join('')
+  try {
+    const parsed = new URL(urlText)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    return parsed.toString()
+  } catch {
+    return null
+  }
 }
 
-function resolveReleaseNotesAsHtml(renderedMarkup: unknown, markdownFallback: unknown): string {
-  const bodyHtml = normalizeTextAsHtml(renderedMarkup)
-  if (bodyHtml !== null) return bodyHtml
+function renderInlineMarkdownWithoutLinks(markdown: string): string {
+  return escapeMarkupText(markdown)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+}
 
+function renderInlineMarkdown(markdown: string): string {
+  const linkPattern = /\[([^\]\n]+)\]\(([^)\s]+)\)/g
+  let cursor = 0
+  let html = ''
+
+  for (const match of markdown.matchAll(linkPattern)) {
+    const matchIndex = match.index ?? 0
+    html += renderInlineMarkdownWithoutLinks(markdown.slice(cursor, matchIndex))
+    const label = renderInlineMarkdownWithoutLinks(match[1])
+    const safeUrl = normalizeMarkdownLinkUrl(match[2])
+    html += safeUrl === null
+      ? label
+      : `<a href="${escapeMarkupText(safeUrl)}" target="_blank" rel="noreferrer">${label}</a>`
+    cursor = matchIndex + match[0].length
+  }
+
+  html += renderInlineMarkdownWithoutLinks(markdown.slice(cursor))
+  return html
+}
+
+function renderMarkdownLine(rawLine: string): { html?: string; kind: 'blank' | 'bullet' | 'heading' | 'paragraph' } {
+  const line = rawLine.trim()
+  if (!line) return { kind: 'blank' }
+
+  const heading = line.match(/^(#{1,3})\s+(.+)$/)
+  if (heading) {
+    const level = heading[1].length
+    return {
+      html: `<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`,
+      kind: 'heading',
+    }
+  }
+
+  const bullet = line.match(/^[-*]\s+(.+)$/)
+  if (bullet) return { html: `<li>${renderInlineMarkdown(bullet[1])}</li>`, kind: 'bullet' }
+
+  const ordered = line.match(/^\d+[.)]\s+(.+)$/)
+  if (ordered) return { html: `<li>${renderInlineMarkdown(ordered[1])}</li>`, kind: 'bullet' }
+
+  return { html: `<p>${renderInlineMarkdown(line)}</p>`, kind: 'paragraph' }
+}
+
+function closeMarkdownList(html: string[], listOpen: boolean): boolean {
+  if (listOpen) html.push('</ul>')
+  return false
+}
+
+function appendMarkdownLine(
+  html: string[],
+  line: ReturnType<typeof renderMarkdownLine>,
+  listOpen: boolean,
+): boolean {
+  if (line.kind === 'blank') return closeMarkdownList(html, listOpen)
+  if (line.kind === 'bullet') {
+    if (!listOpen) html.push('<ul>')
+    html.push(line.html ?? '')
+    return true
+  }
+
+  if (listOpen) html.push('</ul>')
+  html.push(line.html ?? '')
+  return false
+}
+
+function renderReleaseNotesMarkdown(markdownFallback: string): string {
+  const html: string[] = []
+  let listOpen = false
+
+  for (const rawLine of markdownFallback.split('\n')) {
+    listOpen = appendMarkdownLine(html, renderMarkdownLine(rawLine), listOpen)
+  }
+  if (listOpen) html.push('</ul>')
+
+  return html.join('')
+}
+
+function resolveReleaseNotesAsHtml(markdownFallback: unknown): string {
   const fallback = normalizeText(markdownFallback) ?? 'No release notes provided.'
-  return buildFallbackReleaseNotesAsHtml(fallback)
+  return renderReleaseNotesMarkdown(fallback)
 }
 
 function readableNotesUrlForRelease(channel: ReleaseChannel, tagName: string): string | null {
@@ -766,13 +809,12 @@ function normalizeReleaseEntry(release: GitHubReleasePayload): [ReleaseChannel, 
   const tagName = normalizeText(release.tag_name) ?? 'Unknown tag'
   const channel: ReleaseChannel = release.prerelease === true ? 'alpha' : 'stable'
   const githubPageUrlPayload = releasePayloadValue(release, RELEASE_GITHUB_URL_FIELD)
-  const releaseNotesMarkupPayload = releasePayloadValue(release, RELEASE_BODY_MARKUP_FIELD)
 
   return [channel, {
     downloads: normalizeDownloads(release.assets),
     githubUrl: normalizeUrl(githubPageUrlPayload),
-    notesHtml: resolveReleaseNotesAsHtml(releaseNotesMarkupPayload, release.body),
-    notesListItemCount: releaseNotesListItemCount(releaseNotesMarkupPayload, release.body),
+    notesHtml: resolveReleaseNotesAsHtml(release.body),
+    notesListItemCount: releaseNotesListItemCount(release.body),
     publishedLabel: formatPublishedLabel(release.published_at),
     publishedTimestamp: parsePublishedTimestamp(release.published_at),
     readableNotesUrl: readableNotesUrlForRelease(channel, tagName),

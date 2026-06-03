@@ -80,7 +80,7 @@ export async function openExternalUrl(url: ExternalUrlCandidate): Promise<void> 
       throw error
     }
   } else {
-    window.open(normalized, '_blank')
+    window.open(normalized, '_blank', 'noopener,noreferrer')
   }
 }
 

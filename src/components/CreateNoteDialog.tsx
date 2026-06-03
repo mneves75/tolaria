@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { translate, type AppLocale } from '../lib/i18n'
 
 const BUILT_IN_TYPES = [
   'Note',
@@ -24,9 +25,10 @@ interface CreateNoteDialogProps {
   defaultType?: string
   /** Custom types from the vault (Type documents not in built-in list) */
   customTypes?: string[]
+  locale?: AppLocale
 }
 
-export function CreateNoteDialog({ open, onClose, onCreate, defaultType, customTypes = [] }: CreateNoteDialogProps) {
+export function CreateNoteDialog({ open, onClose, onCreate, defaultType, customTypes = [], locale = 'en' }: CreateNoteDialogProps) {
   const [title, setTitle] = useState('')
   const [type, setType] = useState<string>('Note')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -52,27 +54,27 @@ export function CreateNoteDialog({ open, onClose, onCreate, defaultType, customT
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
       <DialogContent showCloseButton={false} className="sm:max-w-[420px]">
         <DialogHeader>
-          <DialogTitle>Create New Note</DialogTitle>
+          <DialogTitle>{translate(locale, 'createNote.title')}</DialogTitle>
           <DialogDescription className="sr-only">
-            Enter a title and choose a type for the new note.
+            {translate(locale, 'createNote.description')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label htmlFor={titleInputId} className="text-xs font-medium text-muted-foreground">
-              Title
+              {translate(locale, 'createNote.titleLabel')}
             </label>
             <Input
               id={titleInputId}
               ref={inputRef}
-              placeholder="Enter note title..."
+              placeholder={translate(locale, 'createNote.titlePlaceholder')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
             <div className="text-xs font-medium text-muted-foreground">
-              Type
+              {translate(locale, 'createNote.typeLabel')}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {BUILT_IN_TYPES.map((t) => (
@@ -111,10 +113,10 @@ export function CreateNoteDialog({ open, onClose, onCreate, defaultType, customT
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              {translate(locale, 'common.cancel')}
             </Button>
             <Button type="submit" disabled={!title.trim()}>
-              Create
+              {translate(locale, 'common.create')}
             </Button>
           </DialogFooter>
         </form>

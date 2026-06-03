@@ -1,10 +1,10 @@
-use crate::commands::expand_tilde;
 use crate::vault::{self, DetectedRename, RenameResult};
 use serde::Deserialize;
 use std::path::Path;
 
 use super::boundary::{
-    with_boundary, with_existing_path_in_requested_vault, with_validated_path, ValidatedPathMode,
+    with_boundary, with_existing_path_in_requested_vault, with_requested_root, with_validated_path,
+    ValidatedPathMode,
 };
 
 struct RequestedNotePath<'a> {
@@ -270,16 +270,22 @@ pub fn auto_rename_untitled(
 
 #[tauri::command]
 pub fn detect_renames(args: VaultPathCommandArgs) -> Result<Vec<DetectedRename>, String> {
-    let vault_path = expand_tilde(&args.vault_path);
-    vault::detect_renames(Path::new(vault_path.as_ref()))
+    with_requested_root(&args.vault_path, |requested_root| {
+        vault::detect_renames(Path::new(requested_root))
+    })
 }
 
 #[tauri::command]
 pub fn update_wikilinks_for_renames(
     args: UpdateWikilinksForRenamesCommandArgs,
 ) -> Result<usize, String> {
-    let vault_path = expand_tilde(&args.vault_path);
-    vault::update_wikilinks_for_renames(Path::new(vault_path.as_ref()), &args.renames)
+    with_boundary(Some(&args.vault_path), |boundary| {
+        for rename in &args.renames {
+            boundary.child_path(&rename.old_path)?;
+            boundary.child_path(&rename.new_path)?;
+        }
+        vault::update_wikilinks_for_renames(boundary.requested_root(), &args.renames)
+    })
 }
 
 #[cfg(test)]
@@ -433,6 +439,32 @@ mod tests {
             .unwrap(),
             0,
         );
+    }
+
+    #[test]
+    fn detected_rename_update_rejects_absolute_or_traversing_paths() {
+        let dir = TempDir::new().unwrap();
+        let vault = vault_path(&dir);
+
+        let absolute_error = update_wikilinks_for_renames(UpdateWikilinksForRenamesCommandArgs {
+            vault_path: vault.clone(),
+            renames: vec![DetectedRename {
+                old_path: "/tmp/outside.md".to_string(),
+                new_path: "inside.md".to_string(),
+            }],
+        })
+        .unwrap_err();
+        assert_eq!(absolute_error, "Path must stay inside the active vault");
+
+        let traversal_error = update_wikilinks_for_renames(UpdateWikilinksForRenamesCommandArgs {
+            vault_path: vault,
+            renames: vec![DetectedRename {
+                old_path: "inside.md".to_string(),
+                new_path: "../outside.md".to_string(),
+            }],
+        })
+        .unwrap_err();
+        assert_eq!(traversal_error, "Path must stay inside the active vault");
     }
 
     #[test]

@@ -44,6 +44,7 @@ describe('NoteSearchList', () => {
         selectedIndex={0}
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
     expect(screen.getByText('Alpha Project')).toBeInTheDocument()
@@ -58,6 +59,7 @@ describe('NoteSearchList', () => {
         selectedIndex={0}
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
     expect(screen.getByText('Project')).toBeInTheDocument()
@@ -71,6 +73,7 @@ describe('NoteSearchList', () => {
         selectedIndex={0}
         getItemKey={(item: TestItem) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
     expect(screen.getByText('Beta Notes')).toBeInTheDocument()
@@ -85,6 +88,7 @@ describe('NoteSearchList', () => {
         selectedIndex={0}
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
     const badge = screen.getByText('Project')
@@ -99,6 +103,7 @@ describe('NoteSearchList', () => {
         selectedIndex={0}
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
 
@@ -119,6 +124,7 @@ describe('NoteSearchList', () => {
         getItemKey={() => ''}
         onItemClick={onItemClick}
         emptyMessage="No matching notes"
+        listboxLabel="Note results"
       />,
     )
     expect(screen.getByText('No matching notes')).toBeInTheDocument()
@@ -131,6 +137,7 @@ describe('NoteSearchList', () => {
         selectedIndex={0}
         getItemKey={() => ''}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
     expect(screen.getByText('No results')).toBeInTheDocument()
@@ -143,6 +150,7 @@ describe('NoteSearchList', () => {
         selectedIndex={0}
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
     fireEvent.click(screen.getByText('Beta Notes'))
@@ -157,6 +165,7 @@ describe('NoteSearchList', () => {
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
         activateOnMouseDown
+        listboxLabel="Note results"
       />,
     )
 
@@ -174,6 +183,7 @@ describe('NoteSearchList', () => {
         selectedIndex={0}
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
     const mouseDown = createEvent.mouseDown(screen.getByText('Beta Notes'))
@@ -192,6 +202,7 @@ describe('NoteSearchList', () => {
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
         onItemHover={onItemHover}
+        listboxLabel="Note results"
       />,
     )
     fireEvent.mouseEnter(screen.getByText('Gamma Experiment'))
@@ -205,6 +216,7 @@ describe('NoteSearchList', () => {
         selectedIndex={1}
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
     const selectedItem = screen.getByText('Beta Notes').closest('div')!
@@ -224,6 +236,7 @@ describe('NoteSearchList', () => {
         selectedIndex={0}
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
 
@@ -235,6 +248,7 @@ describe('NoteSearchList', () => {
         selectedIndex={2}
         getItemKey={(item) => item.id}
         onItemClick={onItemClick}
+        listboxLabel="Note results"
       />,
     )
 

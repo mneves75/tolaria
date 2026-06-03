@@ -786,6 +786,8 @@ interface SearchResult {
 - Click result to open note in editor
 - Shows relevance score and snippet
 
+Search, Quick Open, and Command Palette overlays use localized labels, `role="dialog"` + `aria-modal`, listbox/option active-descendant semantics, and the shared `useDialogFocusTrap` hook for keyboard containment until dismissal. When adding another custom modal overlay, either use the existing shadcn/Radix dialog primitives or reuse this hook with an explicit accessible name and Escape/Tab behavior.
+
 The NoteList header search keeps its local title/snippet/property filtering for immediate scoped results, then augments the match set with `search_vault` hits from the visible workspace roots using the command's frontmatter-excluding search option. React stores only matching paths so body-only matches appear in the current list scope without a second content-read pass or rendering private matched text in note rows.
 
 No indexing step required — search runs directly against the filesystem.

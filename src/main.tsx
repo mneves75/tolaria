@@ -1,6 +1,7 @@
-import { lazy, StrictMode, Suspense } from 'react'
+import { Component, lazy, StrictMode, Suspense, type ReactNode } from 'react'
 import * as Sentry from '@sentry/react'
 import { createRoot } from 'react-dom/client'
+import { Button } from '@/components/ui/button'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import './index.css'
 import { FrontendReadyMarker } from './components/FrontendReadyMarker'
@@ -17,12 +18,59 @@ import {
   type AppCommandShortcutEventOptions,
 } from './hooks/appCommandCatalog'
 import { isRecoveredBlockNoteRenderError } from './components/blockNoteRenderRecovery'
+import { DEFAULT_APP_LOCALE, translate } from './lib/i18n'
 import { isMac, shouldUseCustomWindowChrome } from './utils/platform'
 import { reloadFrontendOnceIfStartupFailed } from './utils/frontendReady'
 
 const TLDRAW_CONTEXT_MENU_SELECTOR = '.tldraw-whiteboard'
 
 const RootApp = lazy(() => import('./App.tsx'))
+
+type RootErrorBoundaryState = {
+  error: Error | null
+}
+
+class RootErrorBoundary extends Component<{ children: ReactNode }, RootErrorBoundaryState> {
+  state: RootErrorBoundaryState = { error: null }
+
+  static getDerivedStateFromError(error: Error): RootErrorBoundaryState {
+    return { error }
+  }
+
+  componentDidCatch(): void {
+    // React root callbacks own Sentry reporting; this boundary owns the visible fallback.
+  }
+
+  render(): ReactNode {
+    if (this.state.error === null) return this.props.children
+
+    return (
+      <section
+        id="tolaria-root-error-boundary"
+        role="alert"
+        style={{
+          alignItems: 'center',
+          background: 'Canvas',
+          color: 'CanvasText',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          minHeight: '100vh',
+          padding: 24,
+          textAlign: 'center',
+        }}
+      >
+        <h1 style={{ fontSize: 20, margin: 0 }}>{translate(DEFAULT_APP_LOCALE, 'rootError.openTitle')}</h1>
+        <p style={{ margin: 0, maxWidth: 520 }}>
+          {translate(DEFAULT_APP_LOCALE, 'rootError.openDescription')}
+        </p>
+        <Button type="button" onClick={() => window.location.reload()}>
+          {translate(DEFAULT_APP_LOCALE, 'rootError.reloadAction')}
+        </Button>
+      </section>
+    )
+  }
+}
 
 function dataTransferHasFiles(dataTransfer: DataTransfer | null): boolean {
   if (!dataTransfer) return false
@@ -132,8 +180,9 @@ function showFatalRenderError(
   errorInfo: { componentStack?: string },
 ): void {
   const existing = document.getElementById('tolaria-fatal-render-error')
-  const overlay = existing ?? document.createElement('pre')
+  const overlay = existing ?? document.createElement('section')
   overlay.id = 'tolaria-fatal-render-error'
+  overlay.setAttribute('role', 'alert')
   overlay.style.cssText = [
     'position:fixed',
     'inset:24px',
@@ -144,19 +193,33 @@ function showFatalRenderError(
     'border-radius:8px',
     'background:#1f1f1f',
     'color:#fff',
-    'font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace',
-    'white-space:pre-wrap',
+    'font:14px/1.5 system-ui,sans-serif',
   ].join(';')
 
   const message = error instanceof Error ? error.stack ?? error.message : String(error)
-  overlay.textContent = [
-    'Tolaria render error',
-    '',
-    message,
-    '',
-    errorInfo.componentStack ?? '',
-  ].join('\n')
+  overlay.innerHTML = ''
+  const title = document.createElement('h1')
+  title.textContent = translate(DEFAULT_APP_LOCALE, 'rootError.renderTitle')
+  const body = document.createElement('p')
+  body.textContent = translate(DEFAULT_APP_LOCALE, 'rootError.renderDescription')
+  const details = document.createElement('details')
+  const summary = document.createElement('summary')
+  summary.textContent = translate(DEFAULT_APP_LOCALE, 'rootError.technicalDetails')
+  const pre = document.createElement('pre')
+  pre.style.whiteSpace = 'pre-wrap'
+  pre.textContent = [message, errorInfo.componentStack ?? ''].join('\n\n')
+  details.append(summary, pre)
+  overlay.append(title, body, details)
   document.body.appendChild(overlay)
+}
+
+function reportReactRootError(
+  error: unknown,
+  errorInfo: { componentStack?: string },
+): void {
+  const componentStack = errorInfo.componentStack ?? ''
+  sentryReactErrorHandler(error, { componentStack })
+  reloadFrontendOnceIfStartupFailed()
 }
 
 function captureReactRootError(
@@ -167,8 +230,7 @@ function captureReactRootError(
 
   const componentStack = errorInfo.componentStack ?? ''
   showFatalRenderError(error, { componentStack })
-  sentryReactErrorHandler(error, { componentStack })
-  reloadFrontendOnceIfStartupFailed()
+  reportReactRootError(error, { componentStack })
 }
 
 function captureRecoverableReactRootError(
@@ -179,7 +241,7 @@ function captureRecoverableReactRootError(
   if (isResizeObserverLoopError(error)) return
   if (isRecoveredBlockNoteRenderError(error, componentStack)) return
 
-  captureReactRootError(error, { componentStack })
+  reportReactRootError(error, { componentStack })
 }
 
 createRoot(document.getElementById('root')!, {
@@ -191,8 +253,10 @@ createRoot(document.getElementById('root')!, {
     <TooltipProvider>
       <LinuxTitlebar />
       <Suspense fallback={null}>
-        <RootApp />
-        <FrontendReadyMarker />
+        <RootErrorBoundary>
+          <RootApp />
+          <FrontendReadyMarker />
+        </RootErrorBoundary>
       </Suspense>
     </TooltipProvider>
   </StrictMode>,

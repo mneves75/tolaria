@@ -15,7 +15,7 @@ import {
 } from '../utils/rawEditorUtils'
 import { useCodeMirror } from '../hooks/useCodeMirror'
 import type { VaultEntry } from '../types'
-import { type AppLocale } from '../lib/i18n'
+import { translate, type AppLocale } from '../lib/i18n'
 import { RawEditorFindBar, type RawEditorFindRequest } from './RawEditorFindBar'
 import {
   activatePlainTextPasteTarget,
@@ -100,10 +100,12 @@ function RawEditorYamlErrorBanner({ error }: { error: string | null }) {
 
 function RawEditorAutocompleteDropdown({
   autocomplete,
+  locale,
   onItemHover,
   position,
 }: {
   autocomplete: RawEditorAutocompleteState | null
+  locale: AppLocale
   onItemHover: (index: number) => void
   position: { top: number; left: number }
 }) {
@@ -127,6 +129,7 @@ function RawEditorAutocompleteDropdown({
         getItemKey={(item, i) => `${item.title}-${item.path ?? i}`}
         onItemClick={(item) => item.onItemClick()}
         onItemHover={onItemHover}
+        listboxLabel={translate(locale, 'noteList.rawEditorSuggestions')}
       />
     </div>
   )
@@ -496,6 +499,7 @@ export function RawEditorView({ content, path, entries, sourceEntry, onContentCh
       />
       <RawEditorAutocompleteDropdown
         autocomplete={autocomplete}
+        locale={locale}
         onItemHover={handleItemHover}
         position={dropdownPosition}
       />

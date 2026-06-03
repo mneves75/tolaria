@@ -13,6 +13,7 @@ import { formatDroppedPathList } from './inlineWikilinkDropText'
 import { CommandPaletteAiMode } from './CommandPaletteAiMode'
 import { Input } from './ui/input'
 import { useNativePathDrop } from './useNativePathDrop'
+import { useDialogFocusTrap } from './useDialogFocusTrap'
 
 interface CommandPaletteProps {
   open: boolean
@@ -135,11 +136,15 @@ function CommandPaletteInput({
   query,
   onChange,
   placeholder,
+  activeDescendantId,
+  listboxId,
 }: {
   inputRef: React.RefObject<HTMLInputElement | null>
   query: string
   onChange: (value: string) => void
   placeholder: string
+  activeDescendantId: string | undefined
+  listboxId: string
 }) {
   const insertNativePathDrop = (paths: string[]) => {
     const droppedPathText = formatDroppedPathList(paths)
@@ -167,6 +172,12 @@ function CommandPaletteInput({
       ref={inputRef}
       className="h-auto rounded-none border-x-0 border-t-0 border-b border-border bg-transparent px-4 py-3 text-[15px] text-foreground shadow-none transition-none outline-none placeholder:text-muted-foreground focus-visible:border-border focus-visible:ring-0 md:text-[15px]"
       type="text"
+      role="combobox"
+      aria-label={placeholder}
+      aria-controls={listboxId}
+      aria-activedescendant={activeDescendantId}
+      aria-expanded={true}
+      aria-autocomplete="list"
       placeholder={placeholder}
       value={query}
       spellCheck={false}
@@ -183,6 +194,7 @@ function CommandPaletteResults({
   selectedIndex,
   listRef,
   emptyText,
+  listboxLabel,
   locale,
   onHover,
   onSelect,
@@ -191,15 +203,17 @@ function CommandPaletteResults({
   selectedIndex: number
   listRef: React.RefObject<HTMLDivElement | null>
   emptyText: string
+  listboxLabel: string
   locale: AppLocale
   onHover: (index: number) => void
   onSelect: (command: CommandAction) => void
 }) {
   const flatList = groups.flatMap((group) => group.items)
+  const activeDescendantId = flatList.length > 0 ? commandOptionId(flatList[selectedIndex]?.id ?? '') : undefined
 
   if (flatList.length === 0) {
     return (
-      <div className="flex-1 overflow-y-auto py-1" ref={listRef}>
+      <div className="flex-1 overflow-y-auto py-1" ref={listRef} id="command-palette-results" role="listbox" aria-label={listboxLabel}>
         <div className="px-4 py-6 text-center text-[13px] text-muted-foreground">
           {emptyText}
         </div>
@@ -220,7 +234,14 @@ function CommandPaletteResults({
   )
 
   return (
-    <div className="flex-1 overflow-y-auto py-1" ref={listRef}>
+    <div
+      className="flex-1 overflow-y-auto py-1"
+      ref={listRef}
+      id="command-palette-results"
+      role="listbox"
+      aria-label={listboxLabel}
+      aria-activedescendant={activeDescendantId}
+    >
       {sections.map(({ group, items, startIndex }) => {
         return (
           <div key={group}>
@@ -270,6 +291,10 @@ function CommandPaletteFooter({
   )
 }
 
+function commandOptionId(commandId: string): string {
+  return `command-palette-option-${commandId}`
+}
+
 export function CommandPalette({ open, ...props }: CommandPaletteProps) {
   if (!open) return null
   return <OpenCommandPalette {...props} />
@@ -292,9 +317,11 @@ function OpenCommandPalette({
   const aiInputRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const aiMode = aiModeEnabled && aiValue.startsWith(' ')
   const resolvedAiAgentReady = aiAgentReady ?? claudeCodeReady
   const { groups, flatList } = usePaletteResults(commands, query)
+  const activeDescendantId = !aiMode && flatList.length > 0 ? commandOptionId(flatList[selectedIndex]?.id ?? '') : undefined
   const t = createTranslator(locale)
   const footerText = {
     aiMode: t('command.aiMode', { agent: '{agent}' }),
@@ -316,6 +343,7 @@ function OpenCommandPalette({
     })
     return () => window.cancelAnimationFrame(focusRetry)
   }, [aiMode])
+  useDialogFocusTrap(panelRef)
 
   useEffect(() => {
     void selectedIndex
@@ -429,6 +457,7 @@ function OpenCommandPalette({
         onClick={onClose}
       />
       <div
+        ref={panelRef}
         className={cn(
           'relative z-10 flex w-[520px] max-h-[440px] max-w-[90vw] flex-col self-start overflow-hidden rounded-xl border border-[var(--border-dialog)] bg-popover shadow-[0_8px_32px_var(--shadow-dialog)]',
           aiMode && 'min-h-[220px]',
@@ -449,15 +478,18 @@ function OpenCommandPalette({
           <>
             <CommandPaletteInput
               inputRef={inputRef}
-              query={query}
-              placeholder={t('command.palettePlaceholder')}
-              onChange={handleQueryChange}
+	              query={query}
+	              placeholder={t('command.palettePlaceholder')}
+	              activeDescendantId={activeDescendantId}
+	              listboxId="command-palette-results"
+	              onChange={handleQueryChange}
             />
             <CommandPaletteResults
               groups={groups}
               selectedIndex={selectedIndex}
               listRef={listRef}
               emptyText={t('command.noMatches')}
+              listboxLabel={t('command.resultsLabel')}
               locale={locale}
               onHover={setSelectedIndex}
               onSelect={handleSelectCommand}
@@ -480,6 +512,9 @@ interface CommandRowProps {
 function CommandRow({ command, selected, onHover, onSelect }: CommandRowProps) {
   return (
     <button
+      id={commandOptionId(command.id)}
+      role="option"
+      aria-selected={selected}
       type="button"
       data-selected={selected}
       className={cn(

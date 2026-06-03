@@ -25,6 +25,9 @@ interface NoteSearchListProps<T extends NoteSearchResultItem> {
   activateOnMouseDown?: boolean
   emptyMessage?: string
   className?: string
+  listboxId?: string
+  listboxLabel: string
+  optionIdPrefix?: string
 }
 
 interface NoteSearchListItemProps<T extends NoteSearchResultItem> {
@@ -34,6 +37,7 @@ interface NoteSearchListItemProps<T extends NoteSearchResultItem> {
   onItemClick: (item: T, index: number) => void
   onItemHover?: (index: number) => void
   activateOnMouseDown?: boolean
+  optionId?: string
 }
 
 function NoteSearchListItem<T extends NoteSearchResultItem>({
@@ -43,6 +47,7 @@ function NoteSearchListItem<T extends NoteSearchResultItem>({
   onItemClick,
   onItemHover,
   activateOnMouseDown,
+  optionId,
 }: NoteSearchListItemProps<T>) {
   const pressActivatedRef = useRef(false)
 
@@ -72,6 +77,9 @@ function NoteSearchListItem<T extends NoteSearchResultItem>({
 
   return (
     <div
+      id={optionId}
+      role="option"
+      aria-selected={selected}
       className={cn(
         'flex cursor-pointer items-center justify-between gap-2 transition-colors',
         selected ? 'bg-accent' : 'hover:bg-secondary',
@@ -79,6 +87,7 @@ function NoteSearchListItem<T extends NoteSearchResultItem>({
     >
       <button
         type="button"
+        tabIndex={-1}
         className="flex w-full items-center justify-between gap-2 border-0 bg-transparent px-3 py-1.5 text-left"
         onPointerDownCapture={activateFromPress}
         onMouseDownCapture={activateFromPress}
@@ -125,6 +134,9 @@ export function NoteSearchList<T extends NoteSearchResultItem>({
   activateOnMouseDown,
   emptyMessage = 'No results',
   className,
+  listboxId,
+  listboxLabel,
+  optionIdPrefix = 'note-search-option',
 }: NoteSearchListProps<T>) {
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -134,7 +146,7 @@ export function NoteSearchList<T extends NoteSearchResultItem>({
 
   if (items.length === 0) {
     return (
-      <div ref={listRef} className={cn('py-1', className)}>
+      <div ref={listRef} id={listboxId} role="listbox" aria-label={listboxLabel} className={cn('py-1', className)}>
         <div className="px-4 py-3 text-center text-[13px] text-muted-foreground">
           {emptyMessage}
         </div>
@@ -143,7 +155,14 @@ export function NoteSearchList<T extends NoteSearchResultItem>({
   }
 
   return (
-    <div ref={listRef} className={cn('py-1', className)}>
+    <div
+      ref={listRef}
+      id={listboxId}
+      role="listbox"
+      aria-label={listboxLabel}
+      aria-activedescendant={`${optionIdPrefix}-${selectedIndex}`}
+      className={cn('py-1', className)}
+    >
       {items.map((item, i) => (
         <NoteSearchListItem
           key={getItemKey(item, i)}
@@ -153,6 +172,7 @@ export function NoteSearchList<T extends NoteSearchResultItem>({
           onItemClick={onItemClick}
           onItemHover={onItemHover}
           activateOnMouseDown={activateOnMouseDown}
+          optionId={`${optionIdPrefix}-${i}`}
         />
       ))}
     </div>

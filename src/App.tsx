@@ -94,6 +94,7 @@ import { TOLARIA_DOCS_URL } from './constants/feedback'
 import { openExternalUrl } from './utils/url'
 import {
   translate,
+  type AppLocale,
 } from './lib/i18n'
 import { normalizeReleaseChannel } from './lib/releaseChannel'
 import {
@@ -193,6 +194,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   const networkStatus = useNetworkStatus()
   const { settings, loaded: settingsLoaded, saveSettings } = useSettings()
   const aiFeaturesEnabled = areAiFeaturesEnabled(settings)
+  const appLocaleRef = useRef<AppLocale>('en')
 
   // onSwitch closure captures `notes` declared below — safe because it's only
   // called on user interaction, never during render (refs inside the hook
@@ -228,13 +230,13 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
 
   const handleGettingStartedVaultReady = useCallback((vaultPath: string) => {
     rememberVaultChoice(vaultPath)
-    setToastMessage(`Getting Started vault cloned and opened at ${vaultPath}`)
+    setToastMessage(translate(appLocaleRef.current, 'vault.toast.gettingStartedReady', { path: vaultPath }))
   }, [rememberVaultChoice])
 
   const handleOnboardingVaultReady = useCallback((vaultPath: string, source: 'template' | 'empty' | 'existing') => {
     rememberVaultChoice(vaultPath)
     if (source === 'template') {
-      setToastMessage(`Getting Started vault cloned and opened at ${vaultPath}`)
+      setToastMessage(translate(appLocaleRef.current, 'vault.toast.gettingStartedReady', { path: vaultPath }))
     }
   }, [rememberVaultChoice])
   const cloneGettingStartedVault = useGettingStartedClone({
@@ -406,6 +408,9 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     settings,
     settingsLoaded,
   })
+  useEffect(() => {
+    appLocaleRef.current = appLocale
+  }, [appLocale])
 
   useVaultOpenedTelemetry({
     entryCount: vault.entries.length,
@@ -596,7 +601,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     onVaultUpdated: handlePulledVaultUpdate,
     onConflict: (files) => {
       const names = files.map((f) => f.split('/').pop()).join(', ')
-      setToastMessage(`Conflict in ${names} — click to resolve`)
+      setToastMessage(translate(appLocale, 'sync.toast.conflict', { names }))
     },
     onToast: (msg) => setToastMessage(msg),
   })
@@ -715,7 +720,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
       await refreshGitModifiedFiles()
     } catch (err) {
       console.error('Failed to change note workspace:', err)
-      setToastMessage(`Failed to move note: ${String(err)}`)
+      setToastMessage(translate(appLocale, 'note.toast.moveFailed', { error: String(err) }))
     }
   }, [
     appSave,
@@ -726,6 +731,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     notes,
     refreshGitModifiedFiles,
     resolvedPath,
+    appLocale,
     vault
   ])
 
@@ -801,13 +807,13 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
         await mockInvoke('create_vault_folder', args)
       }
       await vault.reloadFolders()
-      setToastMessage(`Created folder "${name}"`)
+      setToastMessage(translate(appLocale, 'folder.toast.created', { name }))
       return true
     } catch (e) {
-      setToastMessage(`Failed to create folder: ${e}`)
+      setToastMessage(translate(appLocale, 'folder.toast.createFailed', { error: String(e) }))
       return false
     }
-  }, [resolvedPath, vault])
+  }, [appLocale, resolvedPath, vault])
 
   const folderActions = useFolderActions({
     vaultPath: resolvedPath,
@@ -1114,10 +1120,11 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   })
 
   const { status: updateStatus, actions: updateActions } = useUpdater(settings.release_channel)
+  const downloadingUpdateVersion = updateStatus.state === 'downloading' ? updateStatus.displayVersion ?? '' : ''
 
   const handleCheckForUpdates = useCallback(async () => {
     if (updateStatus.state === 'downloading') {
-      setToastMessage('Update is downloading…')
+      setToastMessage(translate(appLocale, 'update.downloading', { version: downloadingUpdateVersion }))
       return
     }
     if (updateStatus.state === 'ready') {
@@ -1128,13 +1135,13 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     const result = await updateActions.checkForUpdates()
     if (result.kind === 'up-to-date') {
       const checkedChannel = normalizeReleaseChannel(settings.release_channel)
-      setToastMessage(`No newer ${checkedChannel} update is available right now`)
+      setToastMessage(translate(appLocale, 'update.toast.noneAvailable', { channel: checkedChannel }))
     } else if (result.kind === 'available') {
-      setToastMessage(`Tolaria ${result.displayVersion} is available`)
+      setToastMessage(translate(appLocale, 'update.toast.available', { version: result.displayVersion }))
     } else {
       setToastMessage(result.message)
     }
-  }, [appLocale, settings.release_channel, updateActions, updateStatus.state])
+  }, [appLocale, downloadingUpdateVersion, settings.release_channel, updateActions, updateStatus.state])
 
   const handleRepairVault = useCallback(async () => {
     if (!resolvedPath) return
@@ -1145,11 +1152,11 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
       await refreshVaultAiGuidance()
       setToastMessage(msg)
     } catch (err) {
-      setToastMessage(`Failed to repair vault: ${err}`)
+      setToastMessage(translate(appLocale, 'vault.toast.repairFailed', { error: String(err) }))
     }
-  }, [refreshVaultAiGuidance, resolvedPath, vault])
+  }, [appLocale, refreshVaultAiGuidance, resolvedPath, vault])
 
-  const restoreVaultAiGuidance = useCallback(async (successToast: string | null = 'Tolaria AI guidance restored') => {
+  const restoreVaultAiGuidance = useCallback(async (successToast: string | null = translate(appLocale, 'guidance.toast.restored')) => {
     if (!resolvedPath) return
     try {
       const tauriInvoke = isTauri() ? invoke : mockInvoke
@@ -1158,9 +1165,9 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
       await refreshVaultAiGuidance()
       if (successToast) setToastMessage(successToast)
     } catch (err) {
-      setToastMessage(`Failed to restore Tolaria AI guidance: ${err}`)
+      setToastMessage(translate(appLocale, 'guidance.toast.restoreFailed', { error: String(err) }))
     }
-  }, [refreshVaultAiGuidance, resolvedPath, vault])
+  }, [appLocale, refreshVaultAiGuidance, resolvedPath, vault])
 
   const activeCommandEntry = useMemo(() => {
     if (!notes.activeTabPath) return null
@@ -1288,9 +1295,10 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   const reloadVaultForCommand = vault.reloadVault
   const handleManualVaultReload = useCallback(async () => {
     const entries = await reloadVaultForCommand()
-    setToastMessage(`Vault reloaded (${entries.length} ${entries.length === 1 ? 'entry' : 'entries'})`)
+    const messageKey = entries.length === 1 ? 'vault.toast.reloadedOne' : 'vault.toast.reloadedOther'
+    setToastMessage(translate(appLocale, messageKey, { count: entries.length }))
     return entries
-  }, [reloadVaultForCommand])
+  }, [appLocale, reloadVaultForCommand])
 
   const {
     activeTab,
@@ -1571,7 +1579,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
               <div className="app__sidebar" style={{ width: layout.sidebarWidth }}>
                 <Sidebar entries={visibleEntries} folders={vault.folders} views={vault.views} selection={effectiveSelection} onSelect={handleSetSelection} onSelectNote={notes.handleSelectNote} onSelectFavorite={handleOpenFavorite} onReorderFavorites={entryActions.handleReorderFavorites} onCreateType={notes.handleCreateNoteImmediate} onCreateNewType={dialogs.openCreateType} onCustomizeType={entryActions.handleCustomizeType} onUpdateTypeTemplate={entryActions.handleUpdateTypeTemplate} onReorderSections={entryActions.handleReorderSections} onRenameSection={entryActions.handleRenameSection} onDeleteType={handleDeleteType} onToggleTypeVisibility={entryActions.handleToggleTypeVisibility} onCreateFolder={handleCreateFolder} onRenameFolder={folderActions.renameFolder} onDeleteFolder={folderActions.requestDeleteFolder} folderFileActions={fileActions.folderActions} renamingFolderPath={folderActions.renamingFolderPath} onStartRenameFolder={folderActions.startFolderRename} onCancelRenameFolder={folderActions.cancelFolderRename} onCreateView={dialogs.openCreateView} onEditView={handleEditView} onDeleteView={handleDeleteView} onUpdateViewDefinition={handleSidebarUpdateViewDefinition} onReorderViews={canReorderSavedViews ? viewOrdering.onReorderViews : undefined} showInbox={explicitOrganizationEnabled} inboxCount={inboxCount} allNotesFileVisibility={allNotesFileVisibility} pluralizeTypeLabels={settings.sidebar_type_pluralization_enabled ?? true} onCollapse={handleCollapseSidebar} onGoBack={handleGoBack} onGoForward={handleGoForward} canGoBack={canGoBack} canGoForward={canGoForward} locale={appLocale} loading={isVaultContentLoading} vaultRootPath={resolvedPath} workspaceOrder={vaultWorkspaceOrder} />
               </div>
-              <ResizeHandle onResize={layout.handleSidebarResize} />
+              <ResizeHandle ariaLabel={translate(appLocale, 'resize.sidebarHandle')} onResize={layout.handleSidebarResize} />
             </>
           )}
           {noteListVisible && (
@@ -1583,7 +1591,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
                   <NoteList entries={visibleEntries} selection={effectiveSelection} selectedNote={activeTab?.entry ?? null} loading={isVaultContentLoading} noteListFilter={noteListFilter} onNoteListFilterChange={setNoteListFilter} inboxPeriod={inboxPeriod} modifiedFiles={noteListModifiedFiles} modifiedFilesError={noteListModifiedFilesError} gitRepositories={gitRepositories} selectedGitRepositoryPath={gitSurfaces.changesRepositoryPath} onGitRepositoryChange={gitSurfaces.setChangesRepositoryPath} getNoteStatus={vault.getNoteStatus} sidebarCollapsed={!sidebarVisible} onSelectNote={notes.handleSelectNote} onReplaceActiveTab={handleReplaceActiveTabWithQueuedDiff} onEnterNeighborhood={handleEnterNeighborhood} onCreateNote={notes.handleCreateNoteImmediate} onBulkOrganize={explicitOrganizationEnabled ? bulkActions.handleBulkOrganize : undefined} onBulkArchive={bulkActions.handleBulkArchive} onBulkDeletePermanently={deleteActions.handleBulkDeletePermanently} onUpdateTypeSort={notes.handleUpdateFrontmatter} onUpdateViewDefinition={handleUpdateViewDefinition} updateEntry={vault.updateEntry} onOpenInNewWindow={handleOpenEntryInNewWindow} onExportPdf={handleExportNotePdfFromList} onToggleFavorite={entryActions.handleToggleFavorite} onToggleOrganized={explicitOrganizationEnabled ? entryActions.handleToggleOrganized : undefined} onRevealFile={fileActions.revealFile} onCopyFilePath={fileActions.copyFilePath} onDiscardFile={handleDiscardFile} onOpenDeletedNote={handleOpenDeletedNote} allNotesNoteListProperties={vaultConfig.allNotes?.noteListProperties ?? null} onUpdateAllNotesNoteListProperties={handleUpdateAllNotesNoteListProperties} inboxNoteListProperties={vaultConfig.inbox?.noteListProperties ?? null} onUpdateInboxNoteListProperties={handleUpdateInboxNoteListProperties} views={vault.views} visibleNotesRef={visibleNotesRef} allNotesFileVisibility={allNotesFileVisibility} multiSelectionCommandRef={multiSelectionCommandRef} locale={appLocale} />
                 )}
               </div>
-              <ResizeHandle onResize={layout.handleNoteListResize} />
+              <ResizeHandle ariaLabel={translate(appLocale, 'resize.noteListHandle')} onResize={layout.handleNoteListResize} />
             </>
           )}
           <div className={`app__editor${aiActivity.highlightElement === 'editor' || aiActivity.highlightElement === 'tab' ? ' ai-highlight' : ''}`}>
@@ -1693,7 +1701,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
           onClose={dialogs.closeCommandPalette}
         />
         <SearchPanel open={dialogs.showSearch} vaultPath={resolvedPath} entries={visibleEntries} locale={appLocale} onSelectNote={notes.handleSelectNote} onClose={dialogs.closeSearch} />
-        <CreateTypeDialog open={dialogs.showCreateTypeDialog} onClose={dialogs.closeCreateType} onCreate={handleCreateType} />
+        <CreateTypeDialog open={dialogs.showCreateTypeDialog} onClose={dialogs.closeCreateType} onCreate={handleCreateType} locale={appLocale} />
         <NoteRetargetingDialogs
           dialogState={noteRetargetingUi.dialogState}
           dialogEntry={noteRetargetingUi.dialogEntry}

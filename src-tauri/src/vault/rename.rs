@@ -122,7 +122,7 @@ fn replace_wikilinks_in_content(content: &str, re: &Regex, new_target: &str) -> 
 /// Collect all .md file paths in vault eligible for wikilink replacement.
 fn collect_md_files(vault_path: &Path, exclude: &Path) -> Vec<std::path::PathBuf> {
     WalkDir::new(vault_path)
-        .follow_links(true)
+        .follow_links(false)
         .into_iter()
         .filter_map(|e| e.ok())
         .map(|e| e.into_path())
@@ -212,12 +212,10 @@ fn extract_title_value_from_frontmatter_line(line: &str) -> Option<String> {
 /// Always writes `title` to frontmatter (creates it if absent).
 /// H1 headings are body content and are NOT modified — the title source
 /// of truth is frontmatter `title:` → filename, never H1.
-fn update_note_title_in_content(content: &str, new_title: &str) -> String {
+fn update_note_title_in_content(content: &str, new_title: &str) -> Result<String, String> {
     let value = FrontmatterValue::String(new_title.to_string());
-    match update_frontmatter_content(content, "title", Some(value)) {
-        Ok(c) => c,
-        Err(_) => content.to_string(),
-    }
+    update_frontmatter_content(content, "title", Some(value))
+        .map_err(|error| format!("Failed to update note frontmatter: {error}"))
 }
 
 /// Strip vault prefix and .md suffix to get the relative path stem (e.g., "project/weekly-review").
@@ -370,7 +368,7 @@ pub fn rename_note(request: RenameNoteRequest<'_>) -> Result<RenameResult, Strin
     let updated_content = if title_unchanged {
         loaded.content.clone()
     } else {
-        update_note_title_in_content(&loaded.content, new_title)
+        update_note_title_in_content(&loaded.content, new_title)?
     };
     let workspace = RenameWorkspace::new(vault)?;
 
@@ -758,6 +756,29 @@ mod tests {
 
     fn assert_slug_case(input: &str, expected: &str) {
         assert_eq!(title_to_slug(input), expected);
+    }
+
+    #[test]
+    fn rename_note_aborts_when_frontmatter_title_update_fails() {
+        let dir = TempDir::new().unwrap();
+        let vault = dir.path();
+        create_test_file(vault, "broken.md", "---\ntitle: Draft\n# Missing close\n");
+        let old_path = vault.join("broken.md");
+
+        let result = rename_note(RenameNoteRequest {
+            vault_path: vault.to_str().unwrap(),
+            old_path: old_path.to_str().unwrap(),
+            new_title: "Recovered".into(),
+            old_title_hint: None,
+        });
+
+        let error = result.unwrap_err();
+        assert!(error.contains("Failed to update note frontmatter"));
+        assert!(
+            old_path.exists(),
+            "rename must not move files after parse failure"
+        );
+        assert!(!vault.join("recovered.md").exists());
     }
 
     fn assert_unicode_rename_path(result: &RenameResult) {

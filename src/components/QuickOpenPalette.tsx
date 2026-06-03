@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Plus } from '@phosphor-icons/react'
 import type { NoteSearchResult } from '../hooks/useNoteSearch'
+import { useDialogFocusTrap } from './useDialogFocusTrap'
 
 interface QuickOpenPaletteProps {
   open: boolean
@@ -120,6 +121,7 @@ export function QuickOpenPalette({ open, entries, isLoading = false, onSelect, o
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const { results, selectedIndex, setSelectedIndex, handleKeyDown } = useNoteSearch(entries, query)
   const createAction = useQuickOpenCreateAction({ query, isLoading, resultCount: results.length, onCreateNote, onClose })
 
@@ -133,6 +135,7 @@ export function QuickOpenPalette({ open, entries, isLoading = false, onSelect, o
   }, [open, setSelectedIndex])
 
   useQuickOpenKeyboard({ open, results, selectedIndex, onSelect, onClose, handleKeyDown, createFromQuery: createAction.create })
+  useDialogFocusTrap(panelRef)
 
   useEffect(() => {
     if (!open) return
@@ -160,17 +163,24 @@ export function QuickOpenPalette({ open, entries, isLoading = false, onSelect, o
     >
       <button
         type="button"
-        aria-label="Close quick open"
+        aria-label={translate(locale, 'noteList.closeQuickOpen')}
         className="absolute inset-0 z-0 cursor-default border-0 bg-transparent p-0"
         onClick={onClose}
       />
       <div
+        ref={panelRef}
         className="relative z-10 flex w-[500px] max-w-[90vw] max-h-[400px] flex-col self-start overflow-hidden rounded-xl border border-[var(--border-dialog)] bg-popover shadow-[0_8px_32px_var(--shadow-dialog)]"
       >
         <Input
           ref={inputRef}
           className="h-auto rounded-none border-0 border-b border-border px-4 py-3 text-[15px] shadow-none focus-visible:ring-0"
           type="text"
+          role="combobox"
+          aria-label={translate(locale, 'noteList.searchPlaceholder')}
+          aria-controls="quick-open-results"
+          aria-activedescendant={results.length > 0 ? `quick-open-option-${selectedIndex}` : undefined}
+          aria-expanded={results.length > 0}
+          aria-autocomplete="list"
           placeholder={translate(locale, 'noteList.searchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -184,6 +194,9 @@ export function QuickOpenPalette({ open, entries, isLoading = false, onSelect, o
             onClose()
           }}
           onItemHover={(i) => setSelectedIndex(i)}
+          listboxId="quick-open-results"
+          listboxLabel={translate(locale, 'noteList.quickOpenResults')}
+          optionIdPrefix="quick-open-option"
           emptyMessage={quickOpenEmptyMessage(isLoading, locale)}
           className="flex-1 overflow-y-auto"
         />

@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react'
 
 interface ResizeHandleProps {
+  ariaLabel?: string
   onResize: (delta: number) => void
 }
 
-export function ResizeHandle({ onResize }: ResizeHandleProps) {
+const KEYBOARD_RESIZE_STEP = 24
+
+export function ResizeHandle({ ariaLabel = 'Resize pane', onResize }: ResizeHandleProps) {
   const handleRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const lastX = useRef(0)
@@ -73,10 +76,22 @@ export function ResizeHandle({ onResize }: ResizeHandleProps) {
     return () => handle.removeEventListener('mousedown', handleMouseDown)
   }, [handleMouseDown])
 
+  const handleKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+
+    event.preventDefault()
+    onResize(event.key === 'ArrowLeft' ? -KEYBOARD_RESIZE_STEP : KEYBOARD_RESIZE_STEP)
+  }, [onResize])
+
   return (
     <div
       ref={handleRef}
-      className="relative z-30 -ml-1 w-1 shrink-0 self-stretch cursor-col-resize bg-transparent transition-colors hover:bg-[var(--border)]"
+      role="separator"
+      aria-label={ariaLabel}
+      aria-orientation="vertical"
+      tabIndex={0}
+      className="relative z-30 -ml-1 w-1 shrink-0 self-stretch cursor-col-resize bg-transparent transition-colors hover:bg-[var(--border)] focus-visible:bg-[var(--border)] focus-visible:outline-none"
+      onKeyDown={handleKeyDown}
     />
   )
 }

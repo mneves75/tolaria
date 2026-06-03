@@ -139,14 +139,22 @@ define_desktop_stream_command!(
 );
 
 #[cfg(desktop)]
-fn normalize_agent_request(mut request: AiAgentStreamRequest) -> AiAgentStreamRequest {
-    request.vault_path = expand_tilde(&request.vault_path).into_owned();
+fn validate_agent_vault_path(path: &str) -> Result<String, String> {
+    let expanded = expand_tilde(path).into_owned();
+    with_requested_root(&expanded, |requested_root| Ok(requested_root.to_string()))
+}
+
+#[cfg(desktop)]
+fn normalize_agent_request(
+    mut request: AiAgentStreamRequest,
+) -> Result<AiAgentStreamRequest, String> {
+    request.vault_path = validate_agent_vault_path(&request.vault_path)?;
     request.vault_paths = request
         .vault_paths
-        .into_iter()
-        .map(|path| expand_tilde(&path).into_owned())
-        .collect();
-    request
+        .iter()
+        .map(|path| validate_agent_vault_path(path))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(request)
 }
 
 #[cfg(desktop)]
@@ -154,7 +162,7 @@ fn run_normalized_ai_agent_stream(
     request: AiAgentStreamRequest,
     emitter: StreamEmitter<crate::ai_agents::AiAgentStreamEvent>,
 ) -> Result<String, String> {
-    crate::ai_agents::run_ai_agent_stream(normalize_agent_request(request), emitter)
+    crate::ai_agents::run_ai_agent_stream(normalize_agent_request(request)?, emitter)
 }
 
 #[cfg(desktop)]
@@ -312,48 +320,75 @@ mod tests {
         use crate::ai_agents::AiAgentId;
 
         let home = dirs::home_dir().unwrap();
+        let primary = home.join("Vaults").join("tolaria-agent-primary-test");
+        let secondary = home.join("Vaults").join("tolaria-agent-secondary-test");
+        std::fs::create_dir_all(&primary).unwrap();
+        std::fs::create_dir_all(&secondary).unwrap();
         let request = AiAgentStreamRequest {
             agent: AiAgentId::ClaudeCode,
             message: "hi".into(),
             system_prompt: None,
-            vault_path: "~/Vaults/content".into(),
-            vault_paths: vec!["~/Vaults/secondary".into()],
+            vault_path: "~/Vaults/tolaria-agent-primary-test".into(),
+            vault_paths: vec!["~/Vaults/tolaria-agent-secondary-test".into()],
             permission_mode: None,
             event_name: None,
         };
 
-        let normalized = normalize_agent_request(request);
+        let normalized = normalize_agent_request(request).unwrap();
 
         assert_eq!(
             normalized.vault_path,
-            format!("{}/Vaults/content", home.display()),
+            primary.to_string_lossy(),
             "vault_path must be tilde-expanded so spawned agents can chdir into it",
         );
         assert_eq!(
             normalized.vault_paths,
-            vec![format!("{}/Vaults/secondary", home.display())],
+            vec![secondary.to_string_lossy().to_string()],
             "vault_paths must be tilde-expanded so spawned agents can access every active vault",
         );
+        std::fs::remove_dir_all(primary).unwrap();
+        std::fs::remove_dir_all(secondary).unwrap();
     }
 
     #[cfg(desktop)]
     #[test]
-    fn normalize_agent_request_leaves_absolute_vault_path_untouched() {
+    fn normalize_agent_request_rejects_unavailable_vault_path() {
         use crate::ai_agents::AiAgentId;
 
         let request = AiAgentStreamRequest {
             agent: AiAgentId::Codex,
             message: "hi".into(),
             system_prompt: None,
-            vault_path: "/Users/example/vault".into(),
+            vault_path: "/tmp/tolaria-missing-ai-agent-vault".into(),
             vault_paths: Vec::new(),
             permission_mode: None,
             event_name: None,
         };
 
-        let normalized = normalize_agent_request(request);
+        let error = normalize_agent_request(request).unwrap_err();
 
-        assert_eq!(normalized.vault_path, "/Users/example/vault");
+        assert_eq!(error, "Active vault is not available");
+    }
+
+    #[cfg(desktop)]
+    #[test]
+    fn normalize_agent_request_rejects_unavailable_secondary_vault_path() {
+        use crate::ai_agents::AiAgentId;
+
+        let primary = tempfile::TempDir::new().unwrap();
+        let request = AiAgentStreamRequest {
+            agent: AiAgentId::Codex,
+            message: "hi".into(),
+            system_prompt: None,
+            vault_path: primary.path().to_string_lossy().into_owned(),
+            vault_paths: vec!["/tmp/tolaria-missing-ai-agent-secondary-vault".into()],
+            permission_mode: None,
+            event_name: None,
+        };
+
+        let error = normalize_agent_request(request).unwrap_err();
+
+        assert_eq!(error, "Active vault is not available");
     }
 
     #[cfg(desktop)]

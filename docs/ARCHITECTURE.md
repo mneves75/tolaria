@@ -775,7 +775,9 @@ The vault backend (`src-tauri/src/vault/`) is split into focused submodules:
 | `get_vault_ai_guidance_status` | Report whether `AGENTS.md`, `CLAUDE.md`, and optional `GEMINI.md` guidance are managed, missing, broken, or custom |
 | `restore_vault_ai_guidance` | Restore any missing/broken Tolaria-managed guidance files without overwriting custom ones |
 
-Existing-vault command wrappers validate their requested root through `commands/vault/boundary.rs` before touching disk, Git, MCP setup, asset scope, or import destinations. New-vault creation, clone, and Git initialization keep separate target validation because they run before a vault is necessarily registered or active.
+Existing-vault command wrappers validate their requested root through `commands/vault/boundary.rs` before touching disk, Git, MCP setup, asset scope, or import destinations. New-vault creation, clone, and Git initialization keep separate target validation because they run before a vault is necessarily registered or active. Public clone requests still have a strict destination contract: `clone_git_repo` only accepts a new direct child of the user's `~/Vaults` directory, and clone cleanup only removes a destination created for the current failed attempt.
+
+Rename and wikilink-maintenance commands also re-enter the vault boundary before comparing paths or rewriting files. Wikilink rewrites do not follow symlinks, and a rename that would require changing malformed frontmatter aborts before moving the file so the title and filename cannot diverge.
 
 ### Frontmatter
 
@@ -953,6 +955,8 @@ Shortcut routing is explicit:
 ## Auto-Release & In-App Updates
 
 ### Release Pipeline
+
+Release-history pages must render GitHub release markdown from `body` through Tolaria's local escaped markdown renderer. `src/utils/releaseHistoryPage.ts` must ignore any `body_html` field that appears in a fixture or external response, even if a workflow or API client fetched GitHub-rendered release HTML. This keeps the public `/releases/` artifact from trusting third-party HTML.
 
 The release pipeline is owned by the canonical release repository (`refactoringhq/tolaria`). In that repository, every push to `main` triggers `.github/workflows/release.yml`:
 

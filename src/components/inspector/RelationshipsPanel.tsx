@@ -279,6 +279,7 @@ function SearchDropdownWithCreate({ search, onSelect, query, entries, locale, on
           onItemClick={(item) => onSelect(item.entry)}
           onItemHover={(i) => search.setSelectedIndex(i)}
           className="max-h-[160px] overflow-y-auto"
+          listboxLabel={translate(locale, 'noteList.relationshipSuggestions')}
         />
       )}
       {showCreate && onCreateAndOpen && (

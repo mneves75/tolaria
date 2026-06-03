@@ -11,7 +11,6 @@ describe('buildReleaseHistoryPage', () => {
           },
         ],
         body: '## Highlights\n\n- Faster startup\n- Better release notes',
-        body_html: '<h2>Highlights</h2><ul><li>Faster startup</li><li>Better release notes</li></ul>',
         html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/stable-v2026.4.19',
         name: 'Tolaria Stable 2026.4.19',
         prerelease: false,
@@ -26,7 +25,6 @@ describe('buildReleaseHistoryPage', () => {
           },
         ],
         body: '**Alpha** notes with [details](https://example.com/details).',
-        body_html: '<p><strong>Alpha</strong> notes with <a href="https://example.com/details">details</a>.</p>',
         html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/2026.4.19-alpha.1',
         name: 'Alpha 2026.4.19.1',
         prerelease: true,
@@ -54,12 +52,6 @@ describe('buildReleaseHistoryPage', () => {
     const html = buildReleaseHistoryPage([
       {
         body: "## What's Changed\n\n- ee71a00 feat: add paste without formatting command",
-        body_html: [
-          '<h2>What&apos;s Changed</h2>',
-          '<ul>',
-          '<li><a href="https://github.com/refactoringhq/tolaria/commit/ee71a00">ee71a00</a> feat: add paste without formatting command</li>',
-          '</ul>',
-        ].join(''),
         html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/stable-v2026.5.2',
         name: 'Tolaria 2026.5.2',
         prerelease: false,
@@ -89,7 +81,7 @@ describe('buildReleaseHistoryPage', () => {
       },
     ])
 
-    expect(html).toContain('<p>First paragraph<br>with a line break.</p><p>Second paragraph</p>')
+    expect(html).toContain('<p>First paragraph</p><p>with a line break.</p><p>Second paragraph</p>')
   })
 
   it('sorts releases within each channel by published date descending even when the payload order is wrong', () => {
@@ -131,7 +123,6 @@ describe('buildReleaseHistoryPage', () => {
           },
         ],
         body: '## What&apos;s Changed\n\n<ul><li></li></ul>',
-        body_html: '<h2>What&apos;s Changed</h2><ul><li></li></ul>',
         html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/stable-v2026.5.13',
         name: 'Tolaria 2026.5.13',
         prerelease: false,
@@ -145,14 +136,14 @@ describe('buildReleaseHistoryPage', () => {
             name: 'Tolaria_2026.5.13_macOS_Silicon.dmg',
           },
         ],
-        body_html: [
-          '<h2>What&apos;s Changed</h2>',
-          '<h3>Features</h3>',
-          '<ul>',
-          '<li>Add AI visibility setting</li>',
-          '<li>Support mounted vault workspaces</li>',
-          '</ul>',
-        ].join(''),
+        body: [
+          '## What&apos;s Changed',
+          '',
+          '### Features',
+          '',
+          '- Add AI visibility setting',
+          '- Support mounted vault workspaces',
+        ].join('\n'),
         html_url: 'https://github.com/refactoringhq/tolaria/releases/tag/v2026-05-13',
         name: 'Tolaria v2026-05-13',
         prerelease: false,
@@ -182,5 +173,39 @@ describe('buildReleaseHistoryPage', () => {
     expect(html).not.toContain('Draft release')
     expect(html).toContain('No stable releases published yet.')
     expect(html).toContain('No alpha releases published yet.')
+  })
+
+  it('ignores unsafe GitHub-rendered html and renders escaped markdown locally', () => {
+    const html = buildReleaseHistoryPage([
+      {
+        body: [
+          '## Safe Notes',
+          '',
+          '- <script>alert(1)</script>',
+          '- ![x](x)',
+          '- [bad](javascript:alert(1))',
+          '- <img src=x onerror=alert(1)>',
+          '- <svg><animate onbegin=alert(1) /></svg>',
+        ].join('\n'),
+        body_html: [
+          '<script>alert(1)</script>',
+          '<img src=x onerror=alert(1)>',
+          '<a href="javascript:alert(1)">bad</a>',
+          '<svg><animate onbegin=alert(1) /></svg>',
+        ].join(''),
+        name: 'Unsafe release',
+        prerelease: false,
+        published_at: '2026-04-19T11:00:00Z',
+        tag_name: 'stable-v2026.4.19',
+      },
+    ])
+
+    expect(html).toContain('<h2>Safe Notes</h2>')
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+    expect(html).not.toContain('<script>alert(1)</script>')
+    expect(html).not.toContain('<img src=x onerror=alert(1)>')
+    expect(html).not.toContain('href="javascript:')
+    expect(html).not.toContain('<svg>')
+    expect(html).not.toContain('<animate')
   })
 })

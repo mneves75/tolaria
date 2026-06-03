@@ -8,26 +8,37 @@ struct CloneRequest<'a> {
     dest: &'a Path,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct PreparedCloneDestination {
+    cleanup_on_failure: bool,
+}
+
 /// Clone a git repository to a local path using the system git configuration.
 pub fn clone_repo(url: &str, local_path: &str) -> Result<String, String> {
     let dest = Path::new(local_path);
     let request = CloneRequest { url, dest };
-    prepare_clone_destination(dest)?;
+    let prepared_destination = prepare_clone_destination(dest)?;
 
     if let Err(err) = run_clone(&request) {
-        cleanup_failed_clone(dest);
+        cleanup_failed_clone(dest, &prepared_destination);
         return Err(err);
     }
 
     Ok(format!("Cloned to {}", dest.display()))
 }
 
-fn prepare_clone_destination(dest: &Path) -> Result<(), String> {
+fn prepare_clone_destination(dest: &Path) -> Result<PreparedCloneDestination, String> {
     if !dest.exists() {
-        return ensure_parent_directory(dest);
+        ensure_parent_directory(dest)?;
+        return Ok(PreparedCloneDestination {
+            cleanup_on_failure: true,
+        });
     }
 
-    ensure_empty_directory(dest)
+    ensure_empty_directory(dest)?;
+    Ok(PreparedCloneDestination {
+        cleanup_on_failure: false,
+    })
 }
 
 fn ensure_empty_directory(dest: &Path) -> Result<(), String> {
@@ -119,8 +130,8 @@ fn clone_failure_message(output: &Output) -> String {
     format!("git clone exited with status {}", output.status)
 }
 
-fn cleanup_failed_clone(dest: &Path) {
-    if dest.exists() && dest.is_dir() {
+fn cleanup_failed_clone(dest: &Path, prepared_destination: &PreparedCloneDestination) {
+    if prepared_destination.cleanup_on_failure && dest.exists() && dest.is_dir() {
         let _ = std::fs::remove_dir_all(dest);
     }
 }
@@ -198,6 +209,37 @@ mod tests {
             dest.to_str().unwrap(),
         );
         assert!(result.unwrap_err().contains("git clone failed"));
+        assert!(
+            dest.exists(),
+            "failed clones must not delete a pre-existing empty destination"
+        );
+    }
+
+    #[test]
+    fn test_clone_repo_cleans_only_destination_created_by_failed_clone() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let dest = dir.path().join("missing-dest");
+
+        let prepared_destination = prepare_clone_destination(&dest).unwrap();
+        fs::create_dir(&dest).unwrap();
+        cleanup_failed_clone(&dest, &prepared_destination);
+
+        assert!(
+            !dest.exists(),
+            "cleanup is limited to a destination created for this clone attempt"
+        );
+    }
+
+    #[test]
+    fn test_clone_repo_keeps_preexisting_empty_directory_on_cleanup() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let dest = dir.path().join("empty-dest");
+        fs::create_dir(&dest).unwrap();
+
+        let prepared_destination = prepare_clone_destination(&dest).unwrap();
+        cleanup_failed_clone(&dest, &prepared_destination);
+
+        assert!(dest.exists());
     }
 
     #[test]
