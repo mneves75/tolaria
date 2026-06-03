@@ -2,98 +2,105 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Tolaria Production Readiness Notes</title>
+    <title>Tolaria Premium Hardening Notes</title>
     <style>
-      body { color: #1f2937; font-family: system-ui, sans-serif; line-height: 1.5; margin: 32px auto; max-width: 980px; padding: 0 20px; }
+      body { color: #1f2937; font-family: system-ui, sans-serif; line-height: 1.5; margin: 32px auto; max-width: 1040px; padding: 0 20px; }
       h1, h2 { line-height: 1.2; }
       code { background: #f3f4f6; border-radius: 4px; padding: 0.1rem 0.3rem; }
       table { border-collapse: collapse; width: 100%; }
-      th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; vertical-align: top; }
+      th, td { border: 1px solid #d1d5db; padding: 8px 10px; text-align: left; vertical-align: top; }
       th { background: #f9fafb; }
-      .ok { color: #166534; font-weight: 600; }
-      .warn { color: #92400e; font-weight: 600; }
-      .blocker { color: #991b1b; font-weight: 600; }
+      .ok { color: #166534; }
+      .warn { color: #92400e; }
+      .blocker { color: #991b1b; }
     </style>
   </head>
   <body>
-    <h1>Tolaria Production Readiness Review</h1>
-    <p><strong>Date:</strong> 2026-06-03. <strong>Scope:</strong> full review and justified fixes in <code>/Users/mneves/dev/tolaria</code>, branch <code>main</code>, package manager <code>pnpm</code>, app architecture Vite + React 19 + Tauri 2 + Rust.</p>
-    <p><strong>Initial state:</strong> <code>git status --short --branch</code> reported <code>## main...origin/main</code> before this review's edits. Demo vault status was clean at final verification.</p>
-    <p><strong>Guidance used:</strong> AGENTS.md, modern-web-guidance, frontend-design, design-review, review, claude, and security-best-practices. The requested <code>improve-codebase-architecture</code> skill was not installed, so the review used Codex code-review/security/design subagents plus direct architecture review. Claude Code was available and completed a read-only frontend/design review.</p>
+    <h1>Tolaria Premium Hardening Notes</h1>
+    <p><strong>Date:</strong> 2026-06-03. <strong>Repo:</strong> <code>/Users/mneves/dev/tolaria</code>. <strong>Branch:</strong> <code>main</code>. <strong>Package manager:</strong> <code>pnpm</code>. <strong>Architecture:</strong> Vite + React 19 + Tauri 2 + Rust desktop app.</p>
 
-    <h2>Tooling Gaps</h2>
+    <h2>Baseline Facts</h2>
     <table>
-      <thead><tr><th>Gate</th><th>Result</th></tr></thead>
       <tbody>
-        <tr><td>CodeScene</td><td class="blocker">Blocked externally: CodeScene MCP is not exposed, <code>cs</code> is not installed, and <code>CODESCENE_PAT</code> / <code>CODESCENE_PROJECT_ID</code> are absent. Local tests, audits, reviews, and the pre-push hook are next-best evidence only.</td></tr>
-        <tr><td>Codacy</td><td class="blocker">Blocked externally: Codacy MCP is not exposed, <code>codacy</code> and <code>.codacy/cli.sh</code> are absent, and no Codacy credentials are available. No claim is made that the Codacy gate ran.</td></tr>
-        <tr><td>Lara translation</td><td class="warn"><code>pnpm l10n:translate</code> failed with <code>LARA_ACCESS_KEY_ID and LARA_ACCESS_KEY_SECRET must be set</code>. English fallback strings were added to every locale catalog and <code>pnpm l10n:validate</code> passed.</td></tr>
+        <tr><td>Git state</td><td><code>git status --short --branch</code> started as <code>## main...origin/main</code>. Demo vault fixtures were clean during closeout.</td></tr>
+        <tr><td>Repo instructions</td><td>Followed <code>AGENTS.md</code>. <code>CLAUDE.md</code> is a shim back to <code>AGENTS.md</code>. Lore Commit Protocol applies.</td></tr>
+        <tr><td>Framework evidence</td><td><code>package.json</code> contains Vite/Vitest/Playwright/Tauri scripts and dependencies such as <code>react</code>, <code>react-dom</code>, <code>vite</code>, and <code>@tauri-apps/*</code>. No <code>react-native</code>, <code>expo</code>, Metro, EAS, or RN config files were found.</td></tr>
+        <tr><td>Skills and review lanes</td><td>Used modern-web-guidance, react-native-best-practices for applicability checks, frontend-design, design-review, Claude Code, and Codex review/security/verifier lanes. Requested <code>improve-codebase-architecture</code> was not installed.</td></tr>
+        <tr><td>Claude Code</td><td class="ok"><code>claude --version</code> returned <code>2.1.161</code>; read-only design review ran and identified weak pressed affordance as the main premium-feel gap.</td></tr>
+        <tr><td>CodeScene</td><td class="blocker">Blocked externally: CodeScene MCP was not exposed, <code>cs</code> was not installed, and <code>CODESCENE_PAT</code> / <code>CODESCENE_PROJECT_ID</code> were not set.</td></tr>
+        <tr><td>Codacy</td><td class="blocker">Blocked externally: Codacy MCP/CLI credentials were unavailable; no Codacy release claim is made.</td></tr>
       </tbody>
     </table>
 
-    <h2>Resolved High Findings</h2>
+    <h2>Premium UX Score</h2>
+    <p><strong>Actual Tolaria desktop score:</strong> 80 / 100, Premium tier. This normalizes out haptics because this is not a React Native mobile app. <strong>If the requested RN haptics category is forced into the score:</strong> 64 / 100, Decent tier.</p>
+    <table>
+      <thead><tr><th>Dimension</th><th>Score</th><th>Evidence and fix</th></tr></thead>
+      <tbody>
+        <tr><td>Press states</td><td>17 / 20</td><td>Core shadcn <code>Button</code> now has explicit color/shadow/transform transitions and restrained <code>active:scale-[0.98]</code>. Note/search rows keep hover/focus/keyboard activation states.</td></tr>
+        <tr><td>Subtle animations</td><td>15 / 20</td><td>The app already favors utility motion and skeletons. Settings nav smooth scroll now respects <code>prefers-reduced-motion</code>.</td></tr>
+        <tr><td>Haptics</td><td>N/A desktop, 0 / 20 if forced</td><td>No RN/Expo haptics stack exists. Adding haptics would require a separate mobile/product decision and new dependency surface.</td></tr>
+        <tr><td>Keyboard behavior</td><td>17 / 20 desktop</td><td>Tolaria is keyboard-first. Note list now exposes active-row semantics with stable option IDs and <code>aria-activedescendant</code>; search input has explicit type/name/autocomplete/accessibility metadata.</td></tr>
+        <tr><td>Loading/empty states</td><td>16 / 20</td><td>Existing note-list/editor skeletons and onboarding/error states are solid. Targeted Playwright smoke confirmed slow vault loading keeps the shell usable.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Fixes Shipped</h2>
     <ul>
-      <li><strong>Clone destination authority:</strong> <code>clone_git_repo</code> now accepts only a new direct child under <code>~/Vaults</code>, and low-level clone cleanup removes only destinations created for the current failed attempt.</li>
-      <li><strong>AI agent vault roots:</strong> <code>stream_ai_agent</code> validates <code>vault_path</code> and every <code>vault_paths</code> entry through the registered vault boundary before subprocess/MCP use.</li>
-      <li><strong>Rename/wikilink boundaries:</strong> rename detection and wikilink rewrite commands re-enter the vault boundary, reject absolute/traversing paths, avoid symlink following, and abort before moving files when frontmatter title updates fail.</li>
-      <li><strong>Release history XSS:</strong> the generated release page ignores any GitHub-rendered <code>body_html</code>, escapes markdown from <code>body</code>, and allows only safe HTTP(S) links. Workflow header cleanup was intentionally removed from the pushed commit because the available GitHub OAuth token lacks <code>workflow</code> scope; the renderer-side trust boundary is the security fix.</li>
-      <li><strong>Modal and search accessibility:</strong> Search, Quick Open, and Command Palette gained focus trapping, accessible names, combobox/listbox active-descendant semantics, localized labels, and labeled result listboxes; Search now uses the shadcn <code>Input</code>.</li>
-      <li><strong>Keyboard resizing:</strong> pane resize handles now expose separator semantics, labels, focus styles, and Arrow-key resizing.</li>
-      <li><strong>Root crash fallback:</strong> React root rendering is wrapped in a visible, localized <code>RootErrorBoundary</code>, while uncaught startup errors still get a localized emergency fallback path. The pre-React emergency overlay uses direct DOM construction by necessity because component rendering has already failed.</li>
-      <li><strong>External opener safety:</strong> browser-mode URL fallback uses <code>noopener,noreferrer</code>.</li>
-      <li><strong>Localization:</strong> create-note, create-type, commit dialog, search, resize, and touched App toast copy now route through locale catalogs.</li>
-      <li><strong>Plural copy:</strong> touched count strings use singular/plural translation keys instead of English suffix placeholders.</li>
-      <li><strong>Reusable search list contract:</strong> <code>NoteSearchList</code> now requires an accessible listbox label at every call site. Existing wikilink, raw-editor, relationship, and quick-open result lists are labeled through locale catalog keys.</li>
+      <li><strong>Scoped file reveal:</strong> <code>src/utils/url.ts</code> now invokes a Tauri command that validates external reveal paths through the vault boundary before calling the native opener.</li>
+      <li><strong>Narrower Tauri capabilities:</strong> <code>src-tauri/capabilities/default.json</code> now grants restart plus scoped URL opening instead of broad process/opener defaults.</li>
+      <li><strong>Telemetry redaction:</strong> <code>src/lib/sensitiveTextRedaction.ts</code> now redacts macOS, Unix, and Windows absolute paths with spaces, including <code>C:/Users/...</code> and <code>C:\Users\...</code> forms.</li>
+      <li><strong>UTF-8 safe provider errors:</strong> Rust AI provider error truncation no longer slices inside multibyte characters.</li>
+      <li><strong>Premium press feedback:</strong> shadcn button variants moved to <code>src/components/ui/buttonVariants.ts</code>, reducing Fast Refresh noise and adding deliberate pressed feedback.</li>
+      <li><strong>Listbox accessibility:</strong> note list, search panel, and autocomplete rows keep active-descendant and keyboard activation semantics closer to expected desktop behavior.</li>
+      <li><strong>Timer cleanup:</strong> dialog, palette, search, and emoji picker timeouts use browser timer IDs with matching cleanup.</li>
+      <li><strong>Localization:</strong> changed AI-key storage copy lives in <code>en.json</code> and has translated entries in all 17 non-English catalogs. Lara translation could not run because credentials were absent, so translations were manually provided and validated for key shape.</li>
+      <li><strong>Docs:</strong> <code>docs/ABSTRACTIONS.md</code> and <code>docs/ARCHITECTURE.md</code> document the scoped file reveal/external file command boundary.</li>
     </ul>
 
-    <h2>Intentional Deviations</h2>
-    <ul>
-      <li>No new dependencies were added. The fixes reused existing boundary utilities, shadcn components, test harnesses, and local renderers.</li>
-      <li>Full shadcn/Radix migration of every custom overlay and context menu is deferred as medium follow-up; this pass fixed modal focus/semantics for the high-risk palettes changed by the review.</li>
-      <li>PostHog: no new event was added because this pass hardens existing flows rather than adding a new discoverable user action.</li>
-      <li>ADR: none. The work strengthens existing vault-boundary, localization, accessibility, and release-rendering contracts without introducing a new architectural dependency or storage strategy.</li>
-    </ul>
+    <h2>React Doctor</h2>
+    <table>
+      <thead><tr><th>Command</th><th>Outcome</th></tr></thead>
+      <tbody>
+        <tr><td><code>npx react-doctor@latest</code></td><td class="warn">Completed at <strong>54 / 100</strong>, 612 issues, 15 errors. Remaining full-tree errors are outside the changed app surface and include generated Tauri/iOS output, intentional test harness patterns, and established architecture warnings. React Doctor is not installed in the repo; installing it would add a dev dependency/config and was not done under the no-new-dependency constraint.</td></tr>
+        <tr><td><code>npx react-doctor@latest --verbose --diff</code></td><td class="ok">Completed at <strong>95 / 100</strong>, 19 warnings, zero errors. Remaining warnings are medium/accepted follow-ups: ARIA listbox/dialog false positives, React 19 effect/refactor suggestions, one ES2023 <code>toSorted</code> suggestion incompatible with current ES2022 target, and component-shape suggestions.</td></tr>
+      </tbody>
+    </table>
 
     <h2>Validation Evidence</h2>
     <table>
       <thead><tr><th>Command / check</th><th>Outcome</th></tr></thead>
       <tbody>
         <tr><td><code>pnpm lint</code></td><td class="ok">Passed with zero warnings/errors.</td></tr>
-        <tr><td><code>npx tsc --noEmit</code></td><td class="ok">Passed.</td></tr>
-        <tr><td><code>pnpm build</code></td><td class="ok">Passed; existing Vite chunk/dynamic-import warnings remain non-blocking.</td></tr>
-        <tr><td><code>pnpm test:coverage</code></td><td class="ok">Passed: 393 files, 4,342 tests, 87.7% frontend line coverage.</td></tr>
+        <tr><td><code>pnpm exec tsc --noEmit --pretty false</code></td><td class="ok">Passed.</td></tr>
+        <tr><td><code>pnpm build</code></td><td class="ok">Passed. Existing Vite warnings remain for mixed static/dynamic <code>@tauri-apps/api/core.js</code> imports and large chunks, including the main app bundle.</td></tr>
+        <tr><td><code>pnpm test</code></td><td class="ok">Passed: 393 files, 4,345 tests.</td></tr>
+        <tr><td><code>pnpm test:coverage</code></td><td class="ok">Passed: 393 files, 4,345 tests, 87.7% frontend line coverage.</td></tr>
+        <tr><td><code>pnpm l10n:validate</code></td><td class="ok">Passed: 18 locale catalogs against 822 English keys.</td></tr>
+        <tr><td><code>pnpm exec vitest run src/lib/telemetry.test.ts</code></td><td class="ok">Passed: 17 tests, including Windows forward-slash path redaction.</td></tr>
         <tr><td><code>cargo fmt --manifest-path src-tauri/Cargo.toml --check</code></td><td class="ok">Passed.</td></tr>
-        <tr><td><code>cargo test --manifest-path src-tauri/Cargo.toml</code></td><td class="ok">Passed: 1,041 lib tests + 1 integration test, 3 ignored.</td></tr>
-        <tr><td><code>LLVM_COV="$(xcrun -f llvm-cov)" LLVM_PROFDATA="$(xcrun -f llvm-profdata)" cargo llvm-cov --manifest-path src-tauri/Cargo.toml --no-clean --fail-under-lines 85</code></td><td class="ok">Passed: 85.74% Rust line coverage.</td></tr>
-        <tr><td><code>pnpm audit --audit-level high</code></td><td class="ok">Passed with no high/critical advisories; 11 moderate advisories remain.</td></tr>
+        <tr><td><code>cargo test --manifest-path src-tauri/Cargo.toml</code></td><td class="ok">Passed: 1,042 lib tests, 1 integration test, 3 ignored.</td></tr>
+        <tr><td><code>LLVM_COV="$(xcrun -f llvm-cov)" LLVM_PROFDATA="$(xcrun -f llvm-profdata)" cargo llvm-cov --manifest-path src-tauri/Cargo.toml --no-clean --fail-under-lines 85</code></td><td class="ok">Passed: 85.73% Rust line coverage.</td></tr>
+        <tr><td><code>pnpm audit --audit-level high</code></td><td class="ok">Exit 0; 11 moderate npm advisories remain.</td></tr>
         <tr><td><code>cargo audit --file src-tauri/Cargo.lock</code></td><td class="ok">Exit 0 with 20 allowed warnings from transitive Tauri/WebKit/GTK/Sentry/urlpattern dependency chains.</td></tr>
-        <tr><td><code>pnpm l10n:validate</code></td><td class="ok">Passed for 18 locale catalogs and 818 English keys after the medium-fix localization cleanup.</td></tr>
-        <tr><td><code>pnpm l10n:validate</code></td><td class="ok">Passed again after the final listbox-label contract fix: 18 locale catalogs, 822 English keys.</td></tr>
-        <tr><td><code>pnpm exec vitest run src/components/SearchPanel.test.tsx src/components/QuickOpenPalette.test.tsx src/components/CommandPalette.test.tsx src/components/NoteSearchList.test.tsx src/components/CommitDialog.test.tsx src/main.test.ts</code></td><td class="ok">Passed: 6 files, 109 tests after the medium accessibility/localization cleanup.</td></tr>
-        <tr><td><code>pnpm exec vitest run src/components/NoteSearchList.test.tsx src/components/WikilinkSuggestionMenu.test.tsx src/components/RawEditorView.test.tsx src/components/RawEditorView.behavior.test.tsx src/components/inspector/relationshipDisplayLabels.test.tsx src/components/inspector/relationshipLayoutRegression.test.tsx</code></td><td class="ok">Passed: 6 files, 37 tests after making result-list labels required.</td></tr>
-        <tr><td>Final code-review subagent</td><td class="ok">Clear: no critical/high blockers, previous unlabeled-listbox medium resolved. Residual risk noted that editor wikilink suggestions use the default English catalog because the third-party suggestion controller does not pass app locale into that custom component.</td></tr>
-        <tr><td><code>pnpm docs:build</code></td><td class="ok">Passed; generated 42 agent docs and built VitePress.</td></tr>
-        <tr><td><code>BASE_URL="http://127.0.0.1:5201" pnpm playwright:smoke</code></td><td class="ok">Passed: 54/54 Chromium smoke tests in 4.4 minutes.</td></tr>
-        <tr><td><code>LLVM_COV="$(xcrun -f llvm-cov)" LLVM_PROFDATA="$(xcrun -f llvm-profdata)" git push origin main</code></td><td class="ok">Passed pre-push lint, build, frontend coverage, Rust lint/coverage, smoke tests, and the local CodeScene skip gate, then pushed <code>b2b42835</code> to <code>origin/main</code>. Pre-push duration: 7 minutes 26 seconds; smoke suite: 54/54 passed; Rust line coverage in hook: 86.84%.</td></tr>
-        <tr><td><code>gh run list --repo mneves75/tolaria --commit b2b42835 --limit 10 --json ...</code></td><td class="warn">Returned <code>[]</code>. Actions permissions are enabled with <code>{"enabled":true,"allowed_actions":"all","sha_pinning_required":false}</code>, but GitHub did not expose a run for this push during closeout.</td></tr>
-        <tr><td><code>gh api repos/mneves75/tolaria/pages</code></td><td class="warn">Returned HTTP 404, so GitHub Pages deployment could not be verified or triggered as a staging target.</td></tr>
-        <tr><td>Browser screenshots</td><td class="ok">Desktop: <code>/tmp/tolaria-review-desktop-recheck.png</code>. Mobile: <code>/tmp/tolaria-review-mobile.png</code>. Browser mode rendered nonblank AI onboarding; existing mock/native warnings appeared for MCP WebSocket and Tauri window constraints.</td></tr>
-        <tr><td><code>git diff --check</code></td><td class="ok">Passed.</td></tr>
-        <tr><td><code>git status --short -- demo-vault demo-vault-v2</code></td><td class="ok">No output; demo vault fixtures are clean.</td></tr>
+        <tr><td><code>BASE_URL="http://127.0.0.1:5201" npx playwright test tests/smoke/vault-loading-skeleton.spec.ts</code></td><td class="ok">Passed: 1 Chromium smoke test.</td></tr>
+        <tr><td>Browser screenshots</td><td class="ok">Initial blind screenshots were blank and not counted. Waited diagnostic captures are valid: <code>/tmp/tolaria-premium-desktop-wait.png</code> and <code>/tmp/tolaria-premium-mobile-wait.png</code>. Browser console showed existing mock/Tauri warnings, no app crash.</td></tr>
       </tbody>
     </table>
 
-    <h2>Open Risks</h2>
+    <h2>Risks And Tradeoffs</h2>
     <ul>
-      <li class="blocker">CodeScene and Codacy remain external blockers because their required MCP/CLI/API credentials are unavailable in this session.</li>
-      <li class="warn">New non-English strings are English fallbacks until Lara credentials are available and <code>pnpm l10n:translate</code> can run.</li>
-      <li class="warn">The editor wikilink suggestion menu has an accessible catalog-backed label but currently uses <code>DEFAULT_APP_LOCALE</code>; making it fully locale-aware requires plumbing app locale through the third-party suggestion-controller component boundary.</li>
-      <li class="warn">Medium UX follow-ups remain for legacy custom context-menu semantics, loading/error-state refinement, and long AI transcript performance profiling.</li>
-      <li class="warn">No dedicated staging deployment target was found in <code>package.json</code> or the workflow set. The repository has CI, alpha release, stable release, and docs workflows, but no staging workflow or script. GitHub Actions is enabled, yet the pushed commit had no visible Actions runs via <code>gh run list</code> or the Actions API, and the GitHub Pages API returned HTTP 404.</li>
+      <li class="warn">Full-tree React Doctor remains 54/100 because the command scans generated Tauri/iOS output and legacy non-changed surfaces. The changed diff is 95/100 with no errors; forcing 100 would require installing/configuring React Doctor or broader generated-file/test refactors outside this patch.</li>
+      <li class="warn">Large Vite chunks remain a performance follow-up. The current patch did not restructure app-level code splitting.</li>
+      <li class="warn">Mobile haptics and mobile soft-keyboard behavior are not applicable to this Tauri desktop app. A real mobile target would need a separate product/platform plan.</li>
+      <li class="warn">Lara translation could not run because <code>LARA_ACCESS_KEY_ID</code> and <code>LARA_ACCESS_KEY_SECRET</code> were unavailable. Manual translations were supplied and key-shape validation passed.</li>
+      <li class="blocker">CodeScene and Codacy remain external blockers in this session due missing tools/credentials.</li>
+      <li class="warn">No dedicated staging deploy script was found in <code>package.json</code>; release/docs workflows exist, but staging deployment is not available as a safe local command.</li>
     </ul>
 
     <h2>Release Metadata</h2>
-    <p>Version bumped from <code>0.1.1</code> to <code>0.1.2</code> in <code>package.json</code>, <code>src-tauri/tauri.conf.json</code>, <code>src-tauri/Cargo.toml</code>, and the Tolaria package entry in <code>src-tauri/Cargo.lock</code>.</p>
-    <p>Primary release commit: <code>b2b42835 Harden release-blocking trust boundaries and accessibility contracts</code>, pushed to <code>origin/main</code>. This notes update records the post-push deployment evidence and staging blocker.</p>
+    <p><strong>Version:</strong> no additional version bump was made in this pass. The repo currently reports <code>0.1.2</code>; this work is a hardening patch and no packaging convention required another bump.</p>
+    <p><strong>PostHog:</strong> no new event added because the work hardens existing flows and copy rather than adding a new discoverable user action.</p>
+    <p><strong>ADR:</strong> none. The work reinforces existing Tauri command-boundary and renderer accessibility patterns rather than introducing a new dependency, storage strategy, or cross-cutting architecture.</p>
   </body>
 </html>

@@ -24,11 +24,11 @@ export function useFileActions({
   setToastMessage,
   vaultPath,
 }: UseFileActionsInput) {
-  const revealFile = useCallback((path: string) => {
-    void revealLocalPath(path).catch((error) => {
+  const revealFile = useCallback((path: string, rootPath = vaultPath) => {
+    void revealLocalPath(path, rootPath).catch((error) => {
       setToastMessage(fileActionErrorMessage('reveal path', error))
     })
-  }, [setToastMessage])
+  }, [setToastMessage, vaultPath])
 
   const copyFilePath = useCallback((path: string) => {
     void copyLocalPath(path)
@@ -62,8 +62,8 @@ export function useFileActions({
 
   const revealSelectedFolder = useCallback(() => {
     if (selection.kind !== 'folder') return
-    revealFile(resolveFolderPath(selection.path, selection.rootPath))
-  }, [resolveFolderPath, revealFile, selection])
+    revealFile(resolveFolderPath(selection.path, selection.rootPath), selection.rootPath ?? vaultPath)
+  }, [resolveFolderPath, revealFile, selection, vaultPath])
 
   const copySelectedFolderPath = useCallback(() => {
     if (selection.kind !== 'folder') return

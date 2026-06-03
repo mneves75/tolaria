@@ -15,6 +15,10 @@ const NOTE_LIST_LOADING_ROWS = [
   { id: 'long', title: 212, line: 198, selected: false },
 ]
 
+function noteListOptionId(path: string): string {
+  return `note-list-option-${encodeURIComponent(path).replace(/[^A-Za-z0-9_-]/g, '_')}`
+}
+
 function NoteListLoadingBar({ width }: { width: number }) {
   return <span aria-hidden="true" className="block h-4 rounded bg-muted" style={{ width }} />
 }
@@ -35,7 +39,7 @@ function NoteListLoadingRow({
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <NoteListLoadingBar width={title} />
-        <span aria-hidden="true" className="h-4 w-4 shrink-0 rounded bg-muted" />
+        <span aria-hidden="true" className="size-4 shrink-0 rounded bg-muted" />
       </div>
       <div className="flex flex-col gap-2">
         <NoteListLoadingBar width={line} />
@@ -177,6 +181,7 @@ function NoteListBody({
   filterCounts,
   onNoteListFilterChange,
   loading,
+  highlightedPath,
 }: Pick<
   NoteListLayoutProps,
   | 'handleListKeyDown'
@@ -204,6 +209,7 @@ function NoteListBody({
   | 'filterCounts'
   | 'onNoteListFilterChange'
   | 'loading'
+  | 'highlightedPath'
 >) {
   return (
     <div
@@ -212,6 +218,7 @@ function NoteListBody({
       style={{ minHeight: 0 }}
       role="listbox"
       aria-label="Notes"
+      aria-activedescendant={highlightedPath ? noteListOptionId(highlightedPath) : undefined}
       tabIndex={0}
       onBlur={handleNoteListBlur}
       onKeyDown={handleListKeyDown}

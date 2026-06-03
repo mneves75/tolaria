@@ -487,10 +487,13 @@ fn non_empty_str(value: &str) -> Option<&str> {
 
 fn truncate_error(value: &str) -> String {
     const MAX_ERROR_LENGTH: usize = 600;
-    if value.len() <= MAX_ERROR_LENGTH {
+    if value.chars().count() <= MAX_ERROR_LENGTH {
         return value.to_string();
     }
-    format!("{}...", &value[..MAX_ERROR_LENGTH])
+    format!(
+        "{}...",
+        value.chars().take(MAX_ERROR_LENGTH).collect::<String>()
+    )
 }
 
 #[cfg(test)]
@@ -701,5 +704,12 @@ mod tests {
         assert_eq!(truncate_error(short), short);
         assert_eq!(truncate_error(&long).len(), 603);
         assert!(truncate_error(&long).ends_with("..."));
+    }
+
+    #[test]
+    fn truncates_provider_errors_at_utf8_boundaries() {
+        let long = format!("{}é", "x".repeat(600));
+
+        assert_eq!(truncate_error(&long), format!("{}...", "x".repeat(600)));
     }
 }

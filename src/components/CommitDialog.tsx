@@ -65,12 +65,14 @@ interface CommitDialogProps {
   onClose: () => void
 }
 
+const EMPTY_REPOSITORIES: GitRepositoryOption[] = []
+
 export function CommitDialog({
   open,
   modifiedCount,
   commitMode = 'push',
   locale = 'en',
-  repositories = [],
+  repositories = EMPTY_REPOSITORIES,
   selectedRepositoryPath = '',
   suggestedMessage,
   onRepositoryChange,
@@ -89,7 +91,8 @@ export function CommitDialog({
   useEffect(() => {
     if (open) {
       setMessage(suggestedMessageRef.current ?? '') // eslint-disable-line react-hooks/set-state-in-effect -- reset on dialog open
-      setTimeout(() => inputRef.current?.focus(), 50)
+      const focusTimeout = window.setTimeout(() => inputRef.current?.focus(), 50)
+      return () => window.clearTimeout(focusTimeout)
     }
   }, [open])
 

@@ -84,6 +84,16 @@ pub fn open_vault_file_external(
     })
 }
 
+#[tauri::command]
+pub fn reveal_vault_file_external(
+    path: PathBuf,
+    vault_path: Option<PathBuf>,
+) -> Result<(), String> {
+    with_external_file_path(path.as_path(), vault_path.as_deref(), |validated_path| {
+        tauri_plugin_opener::reveal_item_in_dir(validated_path).map_err(|error| error.to_string())
+    })
+}
+
 fn open_path_with_default_app(app_handle: &tauri::AppHandle, path: &Path) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
 

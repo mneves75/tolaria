@@ -17,6 +17,9 @@ use super::vault::boundary::with_requested_root;
 const FDA_REQUIRED: &str =
     "FDA_REQUIRED: Tolaria needs Full Disk Access to read Apple Notes. Open System Settings → \
      Privacy & Security → Full Disk Access, enable Tolaria, then try again.";
+#[cfg(target_os = "macos")]
+const FDA_SETTINGS_URL: &str =
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles";
 
 /// Subfolder (under the vault) imported notes are written into.
 const IMPORT_SUBFOLDER: &str = "Apple Notes";
@@ -26,6 +29,20 @@ pub async fn import_apple_notes(vault_path: String) -> Result<ImportReport, Stri
     tokio::task::spawn_blocking(move || validated_apple_notes_import(&vault_path))
         .await
         .map_err(|err| format!("import task panicked: {err}"))?
+}
+
+#[tauri::command]
+pub fn open_apple_notes_full_disk_access_settings() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        tauri_plugin_opener::open_url(FDA_SETTINGS_URL, None::<&str>)
+            .map_err(|error| error.to_string())
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Full Disk Access settings are only available on macOS.".to_string())
+    }
 }
 
 fn validated_apple_notes_import(vault_path: &str) -> Result<ImportReport, String> {
@@ -83,6 +100,8 @@ fn is_permission_error(message: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "macos")]
+    use super::FDA_SETTINGS_URL;
     use super::{is_permission_error, ImportPaths, FDA_REQUIRED, IMPORT_SUBFOLDER};
     use std::path::Path;
 
@@ -121,5 +140,7 @@ mod tests {
     fn fda_marker_is_actionable() {
         assert!(FDA_REQUIRED.starts_with("FDA_REQUIRED:"));
         assert!(FDA_REQUIRED.contains("Full Disk Access"));
+        #[cfg(target_os = "macos")]
+        assert!(FDA_SETTINGS_URL.starts_with("x-apple.systempreferences:"));
     }
 }

@@ -232,7 +232,7 @@
   "settings.aiProviders.keyStorage.none": "キーなし",
   "settings.aiProviders.keyEnv": "API キーの環境変数",
   "settings.aiProviders.keySafety": "Tolariaは、プロバイダーのAPIキーを設定に保存しません。ホスト型APIの場合、キーを環境変数に格納し、その環境変数名をここに入力してください。",
-  "settings.aiProviders.keySafetyLocal": "保存されたAPIキーは、所有者のみがアクセスできるファイル権限でTolariaのローカルアプリデータに書き込まれます。これらのキーは、Vaultの設定には保存されず、デバイス間で同期されることもありません。",
+  "settings.aiProviders.keySafetyLocal": "保存した API キーは Tolaria のローカルアプリデータに書き込まれ、保管庫の設定には保存されず、デバイス間で同期されません。OS レベルの認証情報管理が必要な場合は環境変数を使用してください。",
   "settings.aiProviders.localSafety": "ローカルプロバイダーは、このデバイスから呼び出されます。ローカルサーバーにキーが必要な場合は、代わりにAPIモデルとしてキーを追加してください。",
   "settings.aiProviders.add": "プロバイダーを追加",
   "settings.aiProviders.addLocal": "ローカルモデルを追加",

@@ -232,7 +232,7 @@
   "settings.aiProviders.keyStorage.none": "Без ключа",
   "settings.aiProviders.keyEnv": "Зменная асяроддзя",
   "settings.aiProviders.keySafety": "Ключы не захоўваюцца ў наладах сховішча.",
-  "settings.aiProviders.keySafetyLocal": "Лакальныя ключы захоўваюцца з абароненымі правамі доступу.",
+  "settings.aiProviders.keySafetyLocal": "Захаваныя API-ключы запісваюцца ў лакальныя даныя праграмы Tolaria, а не ў налады сховішча, і не сінхранізуюцца паміж прыладамі. Выкарыстоўвайце зменныя асяроддзя, калі патрэбны кантроль уліковых даных на ўзроўні АС.",
   "settings.aiProviders.localSafety": "Лакальныя правайдэры выкарыстоўваюцца на гэтай прыладзе.",
   "settings.aiProviders.add": "Дадаць правайдэра",
   "settings.aiProviders.addLocal": "Дадаць лакальную мадэль",

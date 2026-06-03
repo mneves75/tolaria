@@ -232,7 +232,7 @@
   "settings.aiProviders.keyStorage.none": "Tidak ada kunci",
   "settings.aiProviders.keyEnv": "Variabel env kunci API",
   "settings.aiProviders.keySafety": "Tolaria tidak menyimpan kunci API penyedia dalam pengaturan. Untuk API yang dihosting, letakkan kunci dalam variabel lingkungan dan masukkan nama variabel tersebut di sini.",
-  "settings.aiProviders.keySafetyLocal": "Kunci API yang disimpan ditulis ke data aplikasi lokal Tolaria dengan izin file hanya pemilik. Kunci tersebut tidak disimpan dalam pengaturan brankas atau disinkronkan antar perangkat.",
+  "settings.aiProviders.keySafetyLocal": "Kunci API yang disimpan ditulis ke data aplikasi lokal Tolaria, bukan ke pengaturan brankas, dan tidak disinkronkan antarperangkat. Gunakan variabel lingkungan saat Anda memerlukan kontrol kredensial di tingkat sistem operasi.",
   "settings.aiProviders.localSafety": "Penyedia lokal dipanggil dari perangkat ini. Jika server lokal Anda memerlukan kunci, tambahkan sebagai model API sebagai gantinya.",
   "settings.aiProviders.add": "Tambahkan penyedia",
   "settings.aiProviders.addLocal": "Tambahkan model lokal",

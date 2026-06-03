@@ -232,7 +232,7 @@
   "settings.aiProviders.keyStorage.none": "Sem chave",
   "settings.aiProviders.keyEnv": "Variável de ambiente da chave de API",
   "settings.aiProviders.keySafety": "A Tolaria não armazena chaves de API de fornecedores nas definições. Para API alojadas, coloque a chave numa variável de ambiente e introduza o nome dessa variável aqui.",
-  "settings.aiProviders.keySafetyLocal": "As chaves de API guardadas são escritas nos dados locais da aplicação Tolaria com permissões de ficheiro exclusivas para o proprietário. Não são armazenadas nas definições do cofre nem sincronizadas entre dispositivos.",
+  "settings.aiProviders.keySafetyLocal": "As chaves de API guardadas são gravadas nos dados locais da app Tolaria, não nas definições do cofre, e não são sincronizadas entre dispositivos. Utilize variáveis de ambiente quando precisar de controlos de credenciais ao nível do sistema operativo.",
   "settings.aiProviders.localSafety": "Os fornecedores locais são chamados a partir deste dispositivo. Se o seu servidor local exigir uma chave, adicione-a como um modelo de API em vez disso.",
   "settings.aiProviders.add": "Adicionar fornecedor",
   "settings.aiProviders.addLocal": "Adicionar modelo local",

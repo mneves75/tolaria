@@ -232,7 +232,7 @@
   "settings.aiProviders.keyStorage.none": "Aucune clé",
   "settings.aiProviders.keyEnv": "Variable d'environnement de la clé API",
   "settings.aiProviders.keySafety": "Tolaria ne stocke pas les clés API des fournisseurs dans les paramètres. Pour les API hébergées, placez la clé dans une variable d'environnement et saisissez le nom de cette variable ici.",
-  "settings.aiProviders.keySafetyLocal": "Les clés API enregistrées sont écrites dans les données locales de l'application Tolaria, avec des autorisations de fichier réservées au propriétaire. Elles ne sont pas stockées dans les paramètres du coffre-fort ni synchronisées entre les appareils.",
+  "settings.aiProviders.keySafetyLocal": "Les clés d’API enregistrées sont écrites dans les données locales de l’app Tolaria, pas dans les réglages du coffre, et ne sont pas synchronisées entre les appareils. Utilisez des variables d’environnement si vous avez besoin d’un contrôle des identifiants au niveau du système d’exploitation.",
   "settings.aiProviders.localSafety": "Les fournisseurs locaux sont appelés depuis cet appareil. Si votre serveur local nécessite une clé, ajoutez-la plutôt en tant que modèle d'API.",
   "settings.aiProviders.add": "Ajouter un fournisseur",
   "settings.aiProviders.addLocal": "Ajouter un modèle local",

@@ -232,7 +232,7 @@
   "settings.aiProviders.keyStorage.none": "키 없음",
   "settings.aiProviders.keyEnv": "API 키 환경 변수",
   "settings.aiProviders.keySafety": "Tolaria는 설정에서 제공업체 API 키를 저장하지 않습니다. 호스팅된 API의 경우, 키를 환경 변수에 넣고 여기에 해당 변수 이름을 입력하세요.",
-  "settings.aiProviders.keySafetyLocal": "저장된 API 키는 소유자 전용 파일 권한으로 Tolaria의 로컬 앱 데이터에 기록됩니다. API 키는 Vault 설정에는 저장되지 않으며, 장치 간에 동기화되지도 않습니다.",
+  "settings.aiProviders.keySafetyLocal": "저장된 API 키는 볼트 설정이 아니라 Tolaria 로컬 앱 데이터에 기록되며 기기 간에 동기화되지 않습니다. OS 수준의 자격 증명 제어가 필요하면 환경 변수를 사용하세요.",
   "settings.aiProviders.localSafety": "로컬 제공자는 이 장치에서 호출됩니다. 로컬 서버에 키가 필요한 경우, 대신 키를 API 모델로 추가하세요.",
   "settings.aiProviders.add": "제공자 추가",
   "settings.aiProviders.addLocal": "로컬 모델 추가",

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { VaultEntry } from '../../types'
 import { getTypeColor } from '../../utils/typeColors'
-import { getTypeIcon } from '../NoteItem'
+import { getTypeIcon } from '../note-item/typeIcon'
 import { LinkButton } from './LinkButton'
 import { entryStatusTitle } from './shared'
 

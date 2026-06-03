@@ -1,6 +1,6 @@
 import type { VaultEntry } from '../types'
 import { getTypeColor, getTypeLightColor } from './typeColors'
-import { getTypeIcon } from '../components/NoteItem'
+import { getTypeIcon } from '../components/note-item/typeIcon'
 import { deduplicateByPath, disambiguateTitles } from './wikilinkSuggestions'
 import { bestSearchRank } from './fuzzyMatch'
 import { filterSuggestionItems } from '@blocknote/core/extensions'
@@ -24,7 +24,12 @@ interface EnrichSuggestionOptions {
 }
 
 export function hasMultipleSuggestionWorkspaces(items: { entry?: VaultEntry }[]): boolean {
-  return new Set(items.map((item) => item.entry?.workspace?.alias).filter(Boolean)).size > 1
+  const workspaceAliases = new Set<string>()
+  for (const item of items) {
+    if (item.entry?.workspace?.alias) workspaceAliases.add(item.entry.workspace.alias)
+    if (workspaceAliases.size > 1) return true
+  }
+  return false
 }
 
 /** Build the canonical wikilink target: vault-relative path stem without a default alias. */

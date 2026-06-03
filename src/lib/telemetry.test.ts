@@ -46,6 +46,24 @@ describe('telemetry scrubPaths', () => {
     )
   })
 
+  it('redacts macOS paths with spaces in folder and file names', () => {
+    expect(scrubPaths('Error in /Users/luca/My Vault/private note.md')).toBe(
+      'Error in [redacted-path]'
+    )
+  })
+
+  it('redacts Windows paths with spaces in folder and file names', () => {
+    expect(scrubPaths('Error in C:\\Users\\luca\\My Vault\\private note.md')).toBe(
+      'Error in [redacted-path]'
+    )
+  })
+
+  it('redacts Windows paths that use forward slashes', () => {
+    expect(scrubPaths('Error in C:/Users/luca/My Vault/private note.md')).toBe(
+      'Error in [redacted-path]'
+    )
+  })
+
   it('leaves non-path strings untouched', () => {
     expect(scrubPaths('Something went wrong')).toBe('Something went wrong')
   })

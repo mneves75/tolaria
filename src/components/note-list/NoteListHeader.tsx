@@ -13,6 +13,7 @@ import { GitRepositorySelect } from '../GitRepositorySelect'
 import type { GitRepositoryOption } from '../../utils/gitRepositories'
 import { isMac } from '../../utils/platform'
 
+const EMPTY_GIT_REPOSITORIES: GitRepositoryOption[] = []
 const NOTE_LIST_ACTION_BUTTON_CLASSNAME = '!h-auto !w-auto !min-w-0 !rounded-none !p-0 !text-muted-foreground hover:!bg-transparent hover:!text-foreground focus-visible:!bg-transparent data-[state=open]:!bg-transparent data-[state=open]:!text-foreground [&_svg]:!size-4'
 const NOTE_LIST_EXPAND_BUTTON_CLASSNAME = '!h-6 !w-6 !min-w-0 !rounded !p-0 !text-muted-foreground hover:!bg-accent hover:!text-foreground focus-visible:!bg-accent [&_svg]:!size-4'
 const COLLAPSED_SIDEBAR_MAC_CHROME_PADDING = 80
@@ -91,14 +92,14 @@ function HeaderTitle({
   typeDocument,
   onOpenType,
 }: Pick<NoteListHeaderProps, 'title' | 'typeDocument' | 'onOpenType'>) {
-  const handleClick = typeDocument ? () => onOpenType(typeDocument) : undefined
+  const openTypeDocument = typeDocument ? () => onOpenType(typeDocument) : undefined
 
-  if (typeDocument && handleClick) {
+  if (typeDocument && openTypeDocument) {
     return (
       <button
         type="button"
         className="m-0 min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-left text-[14px] font-semibold"
-        onClick={handleClick}
+        onClick={openTypeDocument}
         data-testid="type-header-link"
       >
         {title}
@@ -134,7 +135,7 @@ function HeaderLeading({
 
 function RepositorySelectorRow({
   isChangesView,
-  gitRepositories = [],
+  gitRepositories = EMPTY_GIT_REPOSITORIES,
   selectedGitRepositoryPath = '',
   locale = 'en',
   onGitRepositoryChange,
@@ -243,6 +244,10 @@ function SearchRow({
       <div className="relative flex-1" aria-live="polite">
         <Input
           ref={searchInputRef}
+          type="search"
+          name="note-list-search"
+          aria-label={translate(locale, 'noteList.searchAction')}
+          autoComplete="off"
           placeholder={translate(locale, 'noteList.searchPlaceholder')}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -290,7 +295,7 @@ export function NoteListHeader({
   isSearching,
   searchInputRef,
   propertyPicker,
-  gitRepositories = [],
+  gitRepositories = EMPTY_GIT_REPOSITORIES,
   selectedGitRepositoryPath = '',
   locale = 'en',
   onSortChange,

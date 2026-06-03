@@ -7,7 +7,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { getTypeColor, getTypeLightColor } from '../utils/typeColors'
-import { getTypeIcon } from './NoteItem'
+import { getTypeIcon } from './note-item/typeIcon'
 import { CreateTypeDialog } from './CreateTypeDialog'
 import { PROPERTY_CHIP_STYLE } from './propertyChipStyles'
 import {

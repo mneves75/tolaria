@@ -6,6 +6,7 @@ const SENSITIVE_KEYS = ['token', 'secret', 'password', 'authorization', 'cookie'
 const TOKEN_PREFIXES = ['ghp_', 'gho_', 'ghr_', 'ghs_', 'ghu_', 'github_pat_', 'sk-', 'xoxa-', 'xoxb-', 'xoxp-', 'xoxr-', 'xoxs-']
 const TRAILING_TOKEN_WRAPPERS = new Set(['"', "'", '`', ')', ']', '}', '.', ',', ';'])
 const WHITESPACE = new Set([' ', '\t', '\n', '\r'])
+const PATH_TERMINATORS = new Set(['"', "'", '`', ')', ']', '}', '<', '>', '\n', '\r'])
 
 interface RedactTextInput {
   redactTokens?: boolean
@@ -49,9 +50,10 @@ export function isSensitiveDiagnosticKey({ text }: RedactTextInput): boolean {
 }
 
 function redactTextSegments({ text, redactTokens = false }: RedactTextInput): string {
+  const pathRedactedText = redactAbsolutePaths({ text })
   let redacted = ''
   let token = ''
-  for (const char of text) {
+  for (const char of pathRedactedText) {
     if (WHITESPACE.has(char)) {
       redacted += redactToken({ token, redactTokens }) + char
       token = ''
@@ -60,6 +62,65 @@ function redactTextSegments({ text, redactTokens = false }: RedactTextInput): st
     }
   }
   return redacted + redactToken({ token, redactTokens })
+}
+
+function redactAbsolutePaths({ text }: RedactTextInput): string {
+  let redacted = ''
+  let index = 0
+
+  while (index < text.length) {
+    if (startsAbsolutePathAt(text, index)) {
+      const endIndex = absolutePathEndIndex(text, index)
+      redacted += PATH_REDACTION
+      index = endIndex
+    } else {
+      redacted += text[index]
+      index += 1
+    }
+  }
+
+  return redacted
+}
+
+function startsAbsolutePathAt(text: string, index: number): boolean {
+  return isUnixPathStart(text, index) || isWindowsPathStart(text, index)
+}
+
+function isUnixPathStart(text: string, index: number): boolean {
+  return text[index] === '/' && isPathBoundary(text.at(index - 1)) && !WHITESPACE.has(text.at(index + 1) ?? '')
+}
+
+function isWindowsPathStart(text: string, index: number): boolean {
+  const drive = text.slice(index, index + 3)
+  return isPathBoundary(text.at(index - 1)) && /^[A-Za-z]:[\\/]$/.test(drive)
+}
+
+function isPathBoundary(char: string | undefined): boolean {
+  return char === undefined || WHITESPACE.has(char) || LEADING_TOKEN_WRAPPERS.has(char)
+}
+
+function absolutePathEndIndex(text: string, startIndex: number): number {
+  let index = startIndex
+  while (index < text.length && !PATH_TERMINATORS.has(text[index])) {
+    if (WHITESPACE.has(text[index]) && !shouldKeepWhitespaceInPath(text, index)) break
+    index += 1
+  }
+  return trimTrailingPathPunctuation(text, startIndex, index)
+}
+
+function shouldKeepWhitespaceInPath(text: string, whitespaceIndex: number): boolean {
+  let index = whitespaceIndex + 1
+  while (index < text.length && text[index] === ' ') index += 1
+  const nextSeparator = text.slice(index).search(/[\\/]/)
+  const nextBoundary = text.slice(index).search(/[\s"'`)\]};,]/)
+  const nextExtension = text.slice(index).search(/\.[A-Za-z0-9]{1,8}(?=$|[\s"'`)\]};,])/)
+  return (nextSeparator >= 0 && (nextBoundary < 0 || nextSeparator < nextBoundary))
+    || (nextExtension >= 0 && (nextBoundary < 0 || nextExtension < nextBoundary))
+}
+
+function trimTrailingPathPunctuation(text: string, startIndex: number, endIndex: number): number {
+  while (endIndex > startIndex && TRAILING_TOKEN_WRAPPERS.has(text[endIndex - 1])) endIndex -= 1
+  return endIndex
 }
 
 function redactToken({ token, redactTokens }: RedactTokenInput): string {
@@ -92,7 +153,7 @@ function isUnixAbsolutePath({ value }: TextValueInput): boolean {
 }
 
 function isWindowsAbsolutePath({ value }: TextValueInput): boolean {
-  const segments = value.split('\\').filter(Boolean)
+  const segments = value.split(/[\\/]/).filter(Boolean)
   return segments.length >= 3 && isWindowsDriveSegment({ segment: segments[0] })
 }
 

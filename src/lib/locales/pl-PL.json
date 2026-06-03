@@ -232,7 +232,7 @@
   "settings.aiProviders.keyStorage.none": "Brak klucza",
   "settings.aiProviders.keyEnv": "Zmienna środowiskowa klucza API",
   "settings.aiProviders.keySafety": "Tolaria nie przechowuje kluczy API dostawców w ustawieniach. W przypadku hostowanych API umieść klucz w zmiennej środowiskowej i wprowadź tutaj nazwę tej zmiennej.",
-  "settings.aiProviders.keySafetyLocal": "Zapisane klucze API są zapisywane w lokalnych danych aplikacji Tolaria z uprawnieniami do plików tylko dla właściciela. Nie są one przechowywane w ustawieniach skarbca ani synchronizowane między urządzeniami.",
+  "settings.aiProviders.keySafetyLocal": "Zapisane klucze API są zapisywane w lokalnych danych aplikacji Tolaria, a nie w ustawieniach skarbca, i nie są synchronizowane między urządzeniami. Użyj zmiennych środowiskowych, gdy potrzebujesz kontroli poświadczeń na poziomie systemu operacyjnego.",
   "settings.aiProviders.localSafety": "Wywołania do dostawców lokalnych są realizowane z tego urządzenia. Jeśli Twój lokalny serwer wymaga klucza, dodaj go zamiast tego jako model API.",
   "settings.aiProviders.add": "Dodaj dostawcę",
   "settings.aiProviders.addLocal": "Dodaj model lokalny",

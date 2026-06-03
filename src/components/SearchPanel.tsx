@@ -6,7 +6,7 @@ import { getTypeColor, buildTypeEntryMap } from '../utils/typeColors'
 import { formatSearchSubtitle } from '../utils/noteListHelpers'
 import type { DateDisplayFormat } from '../utils/dateDisplay'
 import { scrollSelectedHTMLChildIntoView } from '../utils/domScroll'
-import { getTypeIcon } from './NoteItem'
+import { getTypeIcon } from './note-item/typeIcon'
 import { NoteTitleIcon } from './NoteTitleIcon'
 import { WorkspaceInitialsBadge } from './WorkspaceInitialsBadge'
 import { useDateDisplayFormat } from '../hooks/useAppPreferences'
@@ -194,7 +194,12 @@ function searchVaultPathsForEntries(entries: VaultEntry[], fallbackVaultPath: st
 }
 
 function shouldShowWorkspace(entries: VaultEntry[]): boolean {
-  return new Set(entries.map((entry) => entry.workspace?.alias).filter(Boolean)).size > 1
+  const workspaceAliases = new Set<string>()
+  for (const entry of entries) {
+    if (entry.workspace?.alias) workspaceAliases.add(entry.workspace.alias)
+    if (workspaceAliases.size > 1) return true
+  }
+  return false
 }
 
 function useSearchSelectionRefs(results: SearchResult[], selectedIndex: number) {
@@ -280,7 +285,10 @@ function useSearchPanelController({ open, vaultPath, entries, onSelectNote, onCl
   }, [entries, onSelectNote, onClose])
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 50)
+    if (!open) return
+
+    const focusTimeout = window.setTimeout(() => inputRef.current?.focus(), 50)
+    return () => window.clearTimeout(focusTimeout)
   }, [open])
 
   useSearchKeyboard({
@@ -418,7 +426,7 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
   function SearchInput({ query, loading, locale, activeDescendantId, listboxId, onChange }, ref) {
     return (
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <svg aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
@@ -439,7 +447,7 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         {loading && (
           <svg
             aria-hidden="true"
-            className="h-4 w-4 shrink-0 animate-spin text-muted-foreground"
+            className="size-4 shrink-0 animate-spin text-muted-foreground"
             data-testid="search-spinner"
             viewBox="0 0 24 24"
             fill="none"
@@ -529,6 +537,12 @@ function resolveSearchResultWorkspace(showWorkspace: boolean, entry: VaultEntry 
   return showWorkspace ? entry?.workspace ?? null : null
 }
 
+function activateSearchResultFromKeyboard(event: React.KeyboardEvent<HTMLDivElement>) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  event.currentTarget.click()
+}
+
 function SearchResultRow({
   result, entry, selected, index, typeEntryMap, showWorkspace, dateDisplayFormat, onSelect, onHover,
 }: SearchResultRowProps) {
@@ -551,6 +565,7 @@ function SearchResultRow({
         selected ? "bg-accent" : "hover:bg-secondary",
       )}
       onClick={() => onSelect(result)}
+      onKeyDown={activateSearchResultFromKeyboard}
       onMouseMove={(event) => onHover(index, event)}
     >
       <div className="flex items-center gap-2">
@@ -641,6 +656,7 @@ function SearchContent({
             role="listbox"
             aria-label={translate(locale, 'search.resultsLabel')}
             aria-activedescendant={activeDescendantId}
+            tabIndex={0}
           >
             {results.map((result, i) => (
               <SearchResultRow

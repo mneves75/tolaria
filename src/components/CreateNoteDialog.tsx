@@ -28,7 +28,9 @@ interface CreateNoteDialogProps {
   locale?: AppLocale
 }
 
-export function CreateNoteDialog({ open, onClose, onCreate, defaultType, customTypes = [], locale = 'en' }: CreateNoteDialogProps) {
+const EMPTY_CUSTOM_TYPES: string[] = []
+
+export function CreateNoteDialog({ open, onClose, onCreate, defaultType, customTypes = EMPTY_CUSTOM_TYPES, locale = 'en' }: CreateNoteDialogProps) {
   const [title, setTitle] = useState('')
   const [type, setType] = useState<string>('Note')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -38,7 +40,8 @@ export function CreateNoteDialog({ open, onClose, onCreate, defaultType, customT
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on dialog open
       setTitle(''); setType(defaultType ?? 'Note')
-      setTimeout(() => inputRef.current?.focus(), 50)
+      const focusTimeout = window.setTimeout(() => inputRef.current?.focus(), 50)
+      return () => window.clearTimeout(focusTimeout)
     }
   }, [open, defaultType])
 

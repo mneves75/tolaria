@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { invoke } from '@tauri-apps/api/core'
-import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import {
   copyLocalPath,
   isUrlValue,
@@ -104,12 +104,15 @@ describe('local file actions', () => {
     })
   })
 
-  it('reveals local paths through the Tauri opener plugin', async () => {
+  it('reveals local paths through the vault-scoped backend command', async () => {
     vi.stubGlobal('isTauri', true)
 
-    await revealLocalPath('/vault/notes/project.md')
+    await revealLocalPath('/vault/notes/project.md', '/vault')
 
-    expect(revealItemInDir).toHaveBeenCalledWith('/vault/notes/project.md')
+    expect(invoke).toHaveBeenCalledWith('reveal_vault_file_external', {
+      path: '/vault/notes/project.md',
+      vaultPath: '/vault',
+    })
   })
 
   it('copies local paths to the clipboard', async () => {

@@ -22,7 +22,8 @@
     "dialog:default",
     "deep-link:default",
     "updater:default",
-    "process:default",
-    "opener:default"
+    "process:allow-restart",
+    "opener:allow-open-url",
+    "opener:allow-default-urls"
   ]
 }

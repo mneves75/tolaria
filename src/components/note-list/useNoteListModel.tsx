@@ -63,16 +63,21 @@ function likelyNextPreloadEntries(entries: VaultEntry[], selectedNotePath: strin
   const end = selectedIndex >= 0
     ? Math.min(entries.length, selectedIndex + ADJACENT_PRELOAD_RADIUS + 1)
     : Math.min(entries.length, LIKELY_NEXT_PRELOAD_LIMIT)
-  return entries
+  const rankedEntries = entries
     .slice(start, end)
     .map((entry, offset) => ({ entry, index: start + offset }))
-    .sort((left, right) => {
-      if (selectedIndex < 0) return 0
-      return Math.abs(left.index - selectedIndex) - Math.abs(right.index - selectedIndex)
-    })
-    .map(({ entry }) => entry)
-    .filter((entry) => entry.path !== selectedNotePath && !isDeletedNoteEntry(entry) && entry.fileKind !== 'binary')
-    .slice(0, LIKELY_NEXT_PRELOAD_LIMIT)
+  rankedEntries.sort((left, right) => {
+    if (selectedIndex < 0) return 0
+    return Math.abs(left.index - selectedIndex) - Math.abs(right.index - selectedIndex)
+  })
+
+  const preloadEntries: VaultEntry[] = []
+  for (const { entry } of rankedEntries) {
+    if (entry.path === selectedNotePath || isDeletedNoteEntry(entry) || entry.fileKind === 'binary') continue
+    preloadEntries.push(entry)
+    if (preloadEntries.length >= LIKELY_NEXT_PRELOAD_LIMIT) break
+  }
+  return preloadEntries
 }
 
 function useLikelyNextPreload(entries: VaultEntry[], selectedNotePath: string | null) {
@@ -621,6 +626,7 @@ function buildNoteListLayoutModel(params: {
     handleNoteListFocus: params.interaction.noteListKeyboard.handleFocus,
     focusNoteList: params.interaction.noteListKeyboard.focusList,
     noteListVirtuosoRef: params.interaction.noteListKeyboard.virtuosoRef,
+    highlightedPath: params.interaction.noteListKeyboard.highlightedPath,
     entitySelection: params.interaction.entitySelection,
     searchedGroups: params.content.searchedGroups,
     collapsedGroups: params.interaction.collapsedGroups,

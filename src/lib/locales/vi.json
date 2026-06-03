@@ -232,7 +232,7 @@
   "settings.aiProviders.keyStorage.none": "Không có khóa",
   "settings.aiProviders.keyEnv": "Biến môi trường khóa API",
   "settings.aiProviders.keySafety": "Tolaria không lưu trữ khóa API của nhà cung cấp trong phần cài đặt. Đối với các API được lưu trữ, hãy đặt khóa vào một biến môi trường và nhập tên biến đó tại đây.",
-  "settings.aiProviders.keySafetyLocal": "Các khóa API đã lưu được ghi vào dữ liệu ứng dụng cục bộ của Tolaria với quyền truy cập tệp chỉ dành cho chủ sở hữu. Các khóa này không được lưu trữ trong cài đặt vault cũng như không được đồng bộ hóa giữa các thiết bị.",
+  "settings.aiProviders.keySafetyLocal": "Các khóa API đã lưu được ghi vào dữ liệu ứng dụng cục bộ của Tolaria, không phải vào cài đặt kho, và không được đồng bộ giữa các thiết bị. Hãy dùng biến môi trường khi bạn cần kiểm soát thông tin xác thực ở cấp hệ điều hành.",
   "settings.aiProviders.localSafety": "Các nhà cung cấp cục bộ được gọi từ thiết bị này. Nếu máy chủ cục bộ của bạn yêu cầu khóa, hãy thêm khóa đó dưới dạng mô hình API thay vì lưu trữ trong cài đặt.",
   "settings.aiProviders.add": "Thêm nhà cung cấp",
   "settings.aiProviders.addLocal": "Thêm mô hình cục bộ",

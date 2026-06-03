@@ -12,7 +12,7 @@ function EmojiOptionButton({ entry, onSelect }: { entry: EmojiEntry; onSelect: (
     <button
       type="button"
       key={entry.emoji}
-      className="flex h-8 w-8 items-center justify-center rounded text-xl transition-colors hover:bg-accent"
+      className="flex size-8 items-center justify-center rounded text-xl transition-colors hover:bg-accent"
       onClick={() => onSelect(entry.emoji)}
       title={entry.name}
       data-testid="emoji-option"
@@ -80,7 +80,8 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 50)
+    const focusTimeout = window.setTimeout(() => inputRef.current?.focus(), 50)
+    return () => window.clearTimeout(focusTimeout)
   }, [])
 
   useEffect(() => {

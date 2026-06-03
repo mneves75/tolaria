@@ -1,39 +1,18 @@
-import type { ComponentType, CSSProperties, MouseEvent as ReactMouseEvent, MouseEventHandler, ReactNode, SVGAttributes } from 'react'
+import type { ComponentType, CSSProperties, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, MouseEventHandler, ReactNode, SVGAttributes } from 'react'
 import type { VaultEntry, NoteStatus } from '../types'
 import { cn } from '@/lib/utils'
-import {
-  Wrench, Flask, Target, ArrowsClockwise,
-  Users, CalendarBlank, Tag, FileText, StackSimple,
-  File, FileDashed, FilePdf, ImageSquare, SpeakerHigh, Video,
-} from '@phosphor-icons/react'
+import { File, FileDashed, FilePdf, FileText, ImageSquare, SpeakerHigh, Video } from '@phosphor-icons/react'
 import { getTypeColor, getTypeLightColor } from '../utils/typeColors'
-import { resolveIcon } from '../utils/iconRegistry'
 import { getDisplayDate } from '../utils/noteListHelpers'
 import { formatTimestampForDateDisplay } from '../utils/dateDisplay'
 import { filePreviewKind, type FilePreviewKind } from '../utils/filePreview'
 import { NoteTitleIcon } from './NoteTitleIcon'
 import { PropertyChips } from './note-item/PropertyChips'
 import { ChangeNoteContent } from './note-item/ChangeNoteContent'
+import { getTypeIcon } from './note-item/typeIcon'
 import { workspaceForEntry } from '../utils/workspaces'
 import { WorkspaceInitialsBadge } from './WorkspaceInitialsBadge'
 import { useDateDisplayFormat } from '../hooks/useAppPreferences'
-
-const TYPE_ICON_MAP: Record<string, ComponentType<SVGAttributes<SVGSVGElement>>> = {
-  Project: Wrench,
-  Experiment: Flask,
-  Responsibility: Target,
-  Procedure: ArrowsClockwise,
-  Person: Users,
-  Event: CalendarBlank,
-  Topic: Tag,
-  Type: StackSimple,
-}
-
-// eslint-disable-next-line react-refresh/only-export-components -- utility co-located with component
-export function getTypeIcon(isA: string | null, customIcon?: string | null): ComponentType<SVGAttributes<SVGSVGElement>> {
-  if (customIcon) return resolveIcon(customIcon)
-  return (isA && (Reflect.get(TYPE_ICON_MAP, isA) as ComponentType<SVGAttributes<SVGSVGElement>> | undefined)) || FileText
-}
 
 type VisibleNoteStatus = Exclude<NoteStatus, 'clean'>
 
@@ -63,7 +42,7 @@ function StatusDot({ noteStatus }: { noteStatus: VisibleNoteStatus }) {
 function StateBadge({ archived }: { archived: boolean }) {
   if (archived) {
     return (
-      <span className="ml-1.5 inline-block align-middle text-muted-foreground" style={{ fontSize: 9, fontWeight: 500, background: 'var(--muted)', borderRadius: 4, padding: '1px 4px', verticalAlign: 'middle' }}>
+      <span className="ml-1.5 inline-block align-middle text-muted-foreground" style={{ fontSize: 12, fontWeight: 500, background: 'var(--muted)', borderRadius: 4, padding: '1px 4px', verticalAlign: 'middle' }}>
         ARCHIVED
       </span>
     )
@@ -73,7 +52,12 @@ function StateBadge({ archived }: { archived: boolean }) {
 
 function WorkspaceBadge({ entry, allEntries }: { entry: VaultEntry; allEntries: VaultEntry[] }) {
   const workspace = workspaceForEntry(entry)
-  const hasMultipleWorkspaces = new Set(allEntries.map((candidate) => candidate.workspace?.alias).filter(Boolean)).size > 1
+  const workspaceAliases = new Set<string>()
+  for (const candidate of allEntries) {
+    if (candidate.workspace?.alias) workspaceAliases.add(candidate.workspace.alias)
+    if (workspaceAliases.size > 1) break
+  }
+  const hasMultipleWorkspaces = workspaceAliases.size > 1
   if (!workspace || !hasMultipleWorkspaces) return null
   return <WorkspaceInitialsBadge workspace={workspace} className="-mr-1.5" testId="workspace-badge" />
 }
@@ -88,6 +72,7 @@ type NoteItemVisualState = {
 type NoteItemRowState = 'binary' | 'multiSelected' | 'selected' | 'highlighted' | 'default'
 
 type NoteItemSurfaceProps = {
+  id: string
   className: string
   style: CSSProperties
   onClick: MouseEventHandler<HTMLDivElement>
@@ -384,6 +369,12 @@ function createNoteItemClickHandler(
   }
 }
 
+function activateNoteItemFromKeyboard(event: ReactKeyboardEvent<HTMLDivElement>) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  event.currentTarget.click()
+}
+
 function resolveNoteItemSurfaceStyle({
   isUnavailableBinary,
   isSelected,
@@ -445,6 +436,7 @@ function resolveNoteItemSurfaceProps({
   typeLightColor: string
 }): NoteItemSurfaceProps {
   return {
+    id: noteListOptionId(entry.path),
     className: noteItemClassName({ isUnavailableBinary, isSelected, isMultiSelected, isHighlighted }),
     style: resolveNoteItemSurfaceStyle({ isUnavailableBinary, isSelected, isMultiSelected, typeColor, typeLightColor }),
     onClick: createNoteItemClickHandler(entry, isUnavailableBinary, onClickNote),
@@ -453,6 +445,10 @@ function resolveNoteItemSurfaceProps({
     testId: resolveNoteItemTestId({ isMultiSelected, previewKind, isUnavailableBinary }),
     title: resolveNoteItemTitle({ previewKind, isUnavailableBinary }),
   }
+}
+
+function noteListOptionId(path: string): string {
+  return `note-list-option-${encodeURIComponent(path).replace(/[^A-Za-z0-9_-]/g, '_')}`
 }
 
 function NoteItemRow({
@@ -474,11 +470,14 @@ function NoteItemRow({
 }) {
   return (
     <div
+      id={surfaceProps.id}
       role="option"
+      tabIndex={-1}
       aria-selected={isSelected || isMultiSelected}
       className={surfaceProps.className}
       style={surfaceProps.style}
       onClick={surfaceProps.onClick}
+      onKeyDown={activateNoteItemFromKeyboard}
       onContextMenu={surfaceProps.onContextMenu}
       onMouseEnter={surfaceProps.onMouseEnter}
       data-testid={surfaceProps.testId}

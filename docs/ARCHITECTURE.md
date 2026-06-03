@@ -582,7 +582,7 @@ Tolaria can import a macOS Apple Notes library into the active vault as plain ma
 6. `manifest` — a per-run manifest (source id → path + content hash) persisted under `<vault>/.tolaria/`. It makes re-import idempotent and, crucially, never overwrites a note the user edited after a prior import, and never resurrects a deleted one.
 7. `run` — orchestration that writes via the existing `vault::save_note_content` and applies the note's modified time to the file.
 
-**Surface:** the `import_apple_notes(vault_path)` Tauri command runs the import off-thread into `<vault>/Apple Notes`, persists the manifest, and maps a Full-Disk-Access permission failure to an `FDA_REQUIRED` message. The UI is an entry in **Settings → Content** (rendered only on macOS with a vault open) that opens a dialog with a consent explainer, progress, a result summary, and an "Open System Settings" deep link when Full Disk Access is missing.
+**Surface:** the `import_apple_notes(vault_path)` Tauri command runs the import off-thread into `<vault>/Apple Notes`, persists the manifest, and maps a Full-Disk-Access permission failure to an `FDA_REQUIRED` message. The UI is an entry in **Settings → Content** (rendered only on macOS with a vault open) that opens a dialog with a consent explainer, progress, a result summary, and an "Open System Settings" action when Full Disk Access is missing. That action invokes the hardcoded `open_apple_notes_full_disk_access_settings` command instead of granting the frontend a custom-scheme opener permission.
 
 **Status:** text, formatting, lists, checklists, internal links → wikilinks, hashtags → tags, folders, and dates are imported; CRDT tables, attachments, and encrypted (locked) notes are not yet (locked notes are skipped and reported). Validated against a real 2,274-note library at 99.9% body decode. See ADRs 0137–0140.
 
@@ -768,6 +768,7 @@ The vault backend (`src-tauri/src/vault/`) is split into focused submodules:
 | `reload_vault` | Allow the requested vault roots in the runtime asset scope, invalidate cache, full rescan from filesystem, then apply Gitignored-content visibility → `Vec<VaultEntry>` |
 | `reload_vault_entry` | Re-read a single file from disk → `VaultEntry` |
 | `open_vault_file_external` | Validate an existing file against the active vault boundary, then open it with the system default app |
+| `reveal_vault_file_external` | Validate an existing file/folder against the active vault boundary, then reveal it in the system file manager |
 | `start_vault_watcher` / `stop_vault_watcher` | Start or stop native active-vault filesystem change events |
 | `check_vault_exists` | Check if vault path exists |
 | `create_empty_vault` | Create a git-backed vault, then seed root `AGENTS.md`, `CLAUDE.md`, `type.md`, and `note.md` defaults |

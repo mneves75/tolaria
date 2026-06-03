@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { openUrl } from '@tauri-apps/plugin-opener'
+import { invoke } from '@tauri-apps/api/core'
 
 import type { TranslationKey, TranslationValues } from '../lib/i18n'
 import { useAppleNotesImport } from '../hooks/useAppleNotesImport'
@@ -15,9 +15,6 @@ import { Button } from '@/components/ui/button'
 import { SectionHeading, SettingsGroup, SettingsRow } from './SettingsControls'
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string
-
-// System Settings → Privacy & Security → Full Disk Access.
-const FDA_SETTINGS_URL = 'x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles'
 
 interface ImportAppleNotesSectionProps {
   t: Translate
@@ -107,7 +104,7 @@ function ImportDialogBody({ t, importer, onClose }: ImportDialogBodyProps) {
         </DialogHeader>
         <DialogFooter>
           {importer.fdaRequired ? (
-            <Button onClick={() => { void openUrl(FDA_SETTINGS_URL) }}>
+            <Button onClick={() => { void invoke('open_apple_notes_full_disk_access_settings') }}>
               {t('settings.appleNotes.openSettings')}
             </Button>
           ) : null}

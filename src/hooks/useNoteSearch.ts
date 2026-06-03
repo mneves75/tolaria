@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { VaultEntry } from '../types'
 import { fuzzyMatch } from '../utils/fuzzyMatch'
 import { getTypeColor, getTypeLightColor, buildTypeEntryMap } from '../utils/typeColors'
-import { getTypeIcon } from '../components/NoteItem'
+import { getTypeIcon } from '../components/note-item/typeIcon'
 import type { NoteSearchResultItem } from '../components/NoteSearchList'
 import { slugifyNoteStem } from '../utils/noteSlug'
 
@@ -188,10 +188,14 @@ export function useNoteSearch(entries: VaultEntry[], query: string, maxResults =
     () => entries.filter((e) => !SEARCH_EXCLUDED_TYPES.has(e.isA ?? '')),
     [entries],
   )
-  const showWorkspace = useMemo(
-    () => new Set(entries.map((entry) => entry.workspace?.alias).filter(Boolean)).size > 1,
-    [entries],
-  )
+  const showWorkspace = useMemo(() => {
+    const workspaceAliases = new Set<string>()
+    for (const entry of entries) {
+      if (entry.workspace?.alias) workspaceAliases.add(entry.workspace.alias)
+      if (workspaceAliases.size > 1) return true
+    }
+    return false
+  }, [entries])
 
   const results: NoteSearchResult[] = useMemo(() => {
     const mapResult = (entry: VaultEntry) => toResult({ entry, typeEntryMap, showWorkspace })

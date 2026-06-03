@@ -232,7 +232,7 @@
   "settings.aiProviders.keyStorage.none": "Biez kliuča",
   "settings.aiProviders.keyEnv": "Zmiennaja asiaroddzia",
   "settings.aiProviders.keySafety": "Kliučy nie zachoŭvajucca ŭ naladach schovišča.",
-  "settings.aiProviders.keySafetyLocal": "Lakaĺnyja kliučy zachoŭvajucca z abaronienymi pravami dostupu.",
+  "settings.aiProviders.keySafetyLocal": "Zachavanyja API-klučy zapisvajucca u lakalnyja danyja prahramy Tolaria, a nie u nalady schovišča, i nie sinchranizujucca pamiž pryładami. Vykarystoŭvajcie zmiennyja asiaroddzia, kali patrebny kantrol ulikovych danych na ŭzroŭni AS.",
   "settings.aiProviders.localSafety": "Lakaĺnyja pravajdery vykarystoŭvajucca na hetaj pryladzie.",
   "settings.aiProviders.add": "Dadać pravajdera",
   "settings.aiProviders.addLocal": "Dadać lakaĺnuju madeĺ",

@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import type { VaultEntry, WorkspaceIdentity } from '../types'
 import { getTypeColor, getTypeLightColor } from '../utils/typeColors'
 import { scrollSelectedHTMLChildIntoView } from '../utils/domScroll'
-import { getTypeIcon } from './NoteItem'
+import { getTypeIcon } from './note-item/typeIcon'
 import { NoteTitleIcon } from './NoteTitleIcon'
 import { WorkspaceInitialsBadge } from './WorkspaceInitialsBadge'
 import './WikilinkSuggestionMenu.css'
@@ -64,7 +64,12 @@ function entryMatchesQuery(entry: VaultEntry, lowerQuery: string): boolean {
 }
 
 function shouldShowWorkspaceBadge(entries: VaultEntry[]): boolean {
-  return new Set(entries.map((entry) => entry.workspace?.alias).filter(Boolean)).size > 1
+  const workspaceAliases = new Set<string>()
+  for (const entry of entries) {
+    if (entry.workspace?.alias) workspaceAliases.add(entry.workspace.alias)
+    if (workspaceAliases.size > 1) return true
+  }
+  return false
 }
 
 function buildMatchedEntry(entry: VaultEntry, typeEntryMap: Record<string, VaultEntry>, showWorkspace: boolean): MatchedEntry {
@@ -294,7 +299,7 @@ export function NoteAutocomplete({ entries, typeEntryMap, value, onChange, onSel
     setSelectedIndex(-1)
   }, [onSelect])
 
-  const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+  const updateAutocompleteValue = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value)
     setOpen(true)
     setSelectedIndex(-1)
@@ -320,10 +325,10 @@ export function NoteAutocomplete({ entries, typeEntryMap, value, onChange, onSel
         ref={inputRef}
         autoFocus={autoFocus}
         className="h-7 flex-1 rounded border border-border bg-transparent px-2 py-0.5 text-xs text-foreground shadow-none focus-visible:ring-1"
-        style={{ borderRadius: 4, outline: 'none', minWidth: 0, width: '100%', boxSizing: 'border-box' }}
+        style={{ borderRadius: 4, minWidth: 0, width: '100%', boxSizing: 'border-box' }}
         placeholder={placeholder}
         value={value}
-        onChange={handleChange}
+        onChange={updateAutocompleteValue}
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
         data-testid={testId}

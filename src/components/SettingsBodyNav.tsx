@@ -4,6 +4,10 @@ import type { TranslationKey } from '../lib/i18n'
 import { Button } from './ui/button'
 import { SETTINGS_SECTION_IDS } from './settingsSectionIds'
 
+function prefersReducedMotion() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+}
+
 interface SettingsBodyNavProps {
   t: (key: TranslationKey) => string
 }
@@ -36,7 +40,7 @@ export function SettingsBodyNav({ t }: SettingsBodyNavProps) {
             variant="ghost"
             size="sm"
             className="h-10 w-full justify-start gap-2.5 px-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-            onClick={() => document.getElementById(item.id)?.scrollIntoView({ block: 'start', behavior: 'smooth' })}
+            onClick={() => document.getElementById(item.id)?.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' })}
           >
             <item.Icon size={16} weight="regular" className="shrink-0" />
             <span className="truncate">{item.label}</span>

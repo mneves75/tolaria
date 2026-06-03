@@ -130,7 +130,8 @@ export function QuickOpenPalette({ open, entries, isLoading = false, onSelect, o
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on dialog open
       setQuery('')
       setSelectedIndex(0)
-      setTimeout(() => inputRef.current?.focus(), 50)
+      const focusTimeout = window.setTimeout(() => inputRef.current?.focus(), 50)
+      return () => window.clearTimeout(focusTimeout)
     }
   }, [open, setSelectedIndex])
 

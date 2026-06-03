@@ -95,10 +95,12 @@ export async function openLocalFile(absolutePath: AbsoluteFilePath, vaultPath?: 
 }
 
 /** Reveal a local file or folder in the system file manager. */
-export async function revealLocalPath(absolutePath: AbsoluteFilePath): Promise<void> {
+export async function revealLocalPath(absolutePath: AbsoluteFilePath, vaultPath?: AbsoluteFilePath): Promise<void> {
   if (isTauri()) {
-    const { revealItemInDir } = await import('@tauri-apps/plugin-opener')
-    await revealItemInDir(absolutePath)
+    const { invoke } = await import('@tauri-apps/api/core')
+    const args: { path: string; vaultPath?: string } = { path: absolutePath }
+    if (vaultPath) args.vaultPath = vaultPath
+    await invoke('reveal_vault_file_external', args)
   }
 }
 
