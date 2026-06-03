@@ -75,8 +75,11 @@ fn same_directory(left: &Path, right: &Path) -> bool {
 }
 
 fn copy_agent_entry(source: &Path, target: &Path) -> Result<(), String> {
-    let metadata = std::fs::metadata(source)
-        .map_err(|error| format!("Failed to inspect Pi agent config: {error}"))?;
+    let metadata = match std::fs::metadata(source) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(format!("Failed to inspect Pi agent config: {error}")),
+    };
 
     if metadata.is_dir() {
         seed_agent_dir(source, target)
@@ -323,6 +326,28 @@ mod tests {
         assert_eq!(config_dir, agent_dir.path().as_os_str());
         assert_seeded_pi_config_files(agent_dir.path());
         assert_seeded_pi_mcp_config(read_mcp_config_value(agent_dir.path()));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn command_ignores_stale_pi_config_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let _env_lock = PI_AGENT_ENV_LOCK.lock().unwrap();
+        let source_agent_dir = tempfile::tempdir().unwrap();
+        let agent_dir = tempfile::tempdir().unwrap();
+        symlink(
+            source_agent_dir.path().join("missing-auth.json"),
+            source_agent_dir.path().join("auth.json"),
+        )
+        .unwrap();
+        let _guard = EnvGuard::set("PI_CODING_AGENT_DIR", source_agent_dir.path());
+
+        let command = build_command(&PathBuf::from("pi"), &request(), agent_dir.path()).unwrap();
+
+        assert_eq!(command.get_current_dir(), Some(Path::new("/tmp/vault")));
+        assert!(!agent_dir.path().join("auth.json").exists());
+        assert!(agent_dir.path().join("mcp.json").exists());
     }
 
     fn write_existing_pi_config(source_agent_dir: &Path) {

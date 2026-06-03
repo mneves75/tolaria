@@ -11,7 +11,7 @@
 //! temporary vault. The Tauri command and the permission flow wrap this.
 
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Component, Path};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
@@ -21,7 +21,7 @@ use crate::import::assemble::{assemble_note, AssembledNote};
 use crate::import::manifest::{ImportManifest, ManifestEntry, ReimportDecision};
 use crate::import::materialize;
 use crate::import::store::{self, RawNote};
-use crate::vault::save_note_content;
+use crate::vault::{create_note_content, save_note_content};
 
 /// Manifest source identifier for Apple Notes imports.
 pub const SOURCE: &str = "apple-notes";
@@ -59,7 +59,7 @@ pub fn run_import(
     let conn = store::open_checkpointed(&db)?;
     let raws = store::enumerate_notes(&conn)?;
 
-    let mut ctx = ImportContext::new(prior);
+    let mut ctx = ImportContext::new(prior, dest_dir)?;
     for raw in &raws {
         ctx.process(raw, dest_dir)?;
     }
@@ -74,20 +74,21 @@ struct ImportContext<'a> {
 }
 
 impl<'a> ImportContext<'a> {
-    fn new(prior: &'a ImportManifest) -> Self {
+    fn new(prior: &'a ImportManifest, dest_dir: &Path) -> Result<Self, String> {
         // Seed taken stems with the prior run's paths so a newly-added note
         // never collides with a note we already placed.
-        let taken = prior
+        let mut taken = prior
             .entries
             .values()
             .map(|e| stem_of(&e.dest_path))
-            .collect();
-        Self {
+            .collect::<Result<HashSet<_>, _>>()?;
+        taken.extend(existing_markdown_stems(dest_dir)?);
+        Ok(Self {
             prior,
             manifest: ImportManifest::new(SOURCE),
             report: ImportReport::default(),
             taken,
-        }
+        })
     }
 
     fn process(&mut self, raw: &RawNote, dest_dir: &Path) -> Result<(), String> {
@@ -103,7 +104,7 @@ impl<'a> ImportContext<'a> {
             }
         };
 
-        let rel_path = self.dest_path_for(&assembled);
+        let rel_path = self.dest_path_for(&assembled)?;
         let abs_path = dest_dir.join(&rel_path);
         let new_hash = sha256_hex(&assembled.markdown);
         let on_disk = read_hash_if_exists(&abs_path);
@@ -124,14 +125,17 @@ impl<'a> ImportContext<'a> {
     /// A previously-imported note keeps its recorded path (so a title change does
     /// not orphan the old file or trip the deletion check); a new note gets a
     /// fresh slug.
-    fn dest_path_for(&mut self, assembled: &AssembledNote) -> String {
+    fn dest_path_for(&mut self, assembled: &AssembledNote) -> Result<String, String> {
         if let Some(entry) = self.prior.entry(&assembled.source_id) {
-            return entry.dest_path.clone();
+            validate_import_dest_path(&entry.dest_path)?;
+            return Ok(entry.dest_path.clone());
         }
-        format!(
+        let rel_path = format!(
             "{}.md",
             materialize::unique_stem(&assembled.title, &mut self.taken)
-        )
+        );
+        validate_import_dest_path(&rel_path)?;
+        Ok(rel_path)
     }
 
     fn write(
@@ -145,7 +149,11 @@ impl<'a> ImportContext<'a> {
         let abs_str = abs
             .to_str()
             .ok_or_else(|| format!("non-UTF-8 destination path: {}", abs.display()))?;
-        save_note_content(abs_str, &note.markdown)?;
+        if update {
+            save_note_content(abs_str, &note.markdown)?;
+        } else {
+            create_note_content(abs_str, &note.markdown)?;
+        }
         apply_modified_time(abs, note.modified_unix);
         self.manifest.upsert(ManifestEntry {
             source_id: note.source_id.clone(),
@@ -183,11 +191,56 @@ impl<'a> ImportContext<'a> {
     }
 }
 
-fn stem_of(dest_path: &str) -> String {
-    dest_path
+fn stem_of(dest_path: &str) -> Result<String, String> {
+    validate_import_dest_path(dest_path)?;
+    Ok(dest_path
         .strip_suffix(".md")
         .unwrap_or(dest_path)
-        .to_string()
+        .to_string())
+}
+
+fn validate_import_dest_path(dest_path: &str) -> Result<(), String> {
+    if dest_path.trim().is_empty() || !dest_path.ends_with(".md") {
+        return Err("invalid import manifest destination path".to_string());
+    }
+
+    let path = Path::new(dest_path);
+    if path.is_absolute() {
+        return Err("invalid import manifest destination path".to_string());
+    }
+    if path.components().any(|component| {
+        matches!(
+            component,
+            Component::CurDir | Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        )
+    }) {
+        return Err("invalid import manifest destination path".to_string());
+    }
+    Ok(())
+}
+
+fn existing_markdown_stems(dest_dir: &Path) -> Result<HashSet<String>, String> {
+    let mut stems = HashSet::new();
+    if !dest_dir.exists() {
+        return Ok(stems);
+    }
+
+    let entries = std::fs::read_dir(dest_dir)
+        .map_err(|error| format!("failed to read import destination: {error}"))?;
+    for entry in entries {
+        let entry = entry.map_err(|error| format!("failed to read import destination: {error}"))?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let Some(file_name) = path.file_name().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        if let Some(stem) = file_name.strip_suffix(".md") {
+            stems.insert(stem.to_string());
+        }
+    }
+    Ok(stems)
 }
 
 fn sha256_hex(content: &str) -> String {
@@ -289,6 +342,33 @@ mod tests {
     }
 
     #[test]
+    fn fresh_import_does_not_overwrite_existing_destination_notes() {
+        let src = TempDir::new().unwrap();
+        make_store(src.path(), &[("a", "Existing", "imported body", false)]);
+        let vault = TempDir::new().unwrap();
+        let dest_dir = vault.path().join("Apple Notes");
+        fs::create_dir_all(&dest_dir).unwrap();
+        fs::write(dest_dir.join("existing.md"), "user-owned body").unwrap();
+
+        let (report, manifest) =
+            run_import(src.path(), &dest_dir, &ImportManifest::new("apple-notes")).unwrap();
+
+        assert_eq!(report.imported, 1);
+        assert_eq!(
+            fs::read_to_string(dest_dir.join("existing.md")).unwrap(),
+            "user-owned body"
+        );
+        assert_eq!(
+            fs::read_to_string(dest_dir.join("existing-2.md")).unwrap(),
+            "imported body"
+        );
+        assert_eq!(
+            manifest.entry("a").unwrap().dest_path,
+            "existing-2.md".to_string()
+        );
+    }
+
+    #[test]
     fn reimport_unchanged_is_idempotent() {
         let src = TempDir::new().unwrap();
         make_store(src.path(), &[("a", "Note", "body", false)]);
@@ -353,6 +433,31 @@ mod tests {
         assert!(!vault.path().join("note.md").exists());
         assert_eq!(report.skipped.len(), 1);
         assert!(report.skipped[0].reason.contains("deleted"));
+    }
+
+    #[test]
+    fn reimport_rejects_manifest_paths_outside_import_destination() {
+        let src = TempDir::new().unwrap();
+        make_store(src.path(), &[("a", "Note", "new body", false)]);
+        let vault = TempDir::new().unwrap();
+        let dest_dir = vault.path().join("Apple Notes");
+        fs::create_dir_all(&dest_dir).unwrap();
+        let outside = vault.path().join("outside.md");
+        fs::write(&outside, "old body").unwrap();
+        let old_hash = super::sha256_hex("old body");
+        let mut manifest = ImportManifest::new("apple-notes");
+        manifest.upsert(super::ManifestEntry {
+            source_id: "a".to_string(),
+            dest_path: "../outside.md".to_string(),
+            content_hash: old_hash,
+            attachment_paths: Vec::new(),
+            imported_at: 1,
+        });
+
+        let err = run_import(src.path(), &dest_dir, &manifest).unwrap_err();
+
+        assert!(err.contains("invalid import manifest destination path"));
+        assert_eq!(fs::read_to_string(outside).unwrap(), "old body");
     }
 
     #[test]

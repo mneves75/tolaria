@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use crate::import::manifest::ImportManifest;
 use crate::import::run::{self, ImportReport};
 
-use super::expand_tilde;
+use super::vault::boundary::with_requested_root;
 
 /// Marker prefix the frontend matches to show the Full Disk Access explainer.
 const FDA_REQUIRED: &str =
@@ -23,10 +23,15 @@ const IMPORT_SUBFOLDER: &str = "Apple Notes";
 
 #[tauri::command]
 pub async fn import_apple_notes(vault_path: String) -> Result<ImportReport, String> {
-    let vault_path = expand_tilde(&vault_path).into_owned();
-    tokio::task::spawn_blocking(move || run_apple_notes_import(&vault_path))
+    tokio::task::spawn_blocking(move || validated_apple_notes_import(&vault_path))
         .await
         .map_err(|err| format!("import task panicked: {err}"))?
+}
+
+fn validated_apple_notes_import(vault_path: &str) -> Result<ImportReport, String> {
+    with_requested_root(vault_path, |requested_root| {
+        run_apple_notes_import(requested_root)
+    })
 }
 
 fn run_apple_notes_import(vault_path: &str) -> Result<ImportReport, String> {
@@ -93,6 +98,14 @@ mod tests {
             paths.manifest_path,
             Path::new("/vault/.tolaria/apple-notes-manifest.json")
         );
+    }
+
+    #[test]
+    fn import_rejects_unavailable_vault_roots_before_reading_notes() {
+        let err =
+            super::validated_apple_notes_import("/definitely/missing/tolaria-vault").unwrap_err();
+
+        assert_eq!(err, "Active vault is not available");
     }
 
     #[test]

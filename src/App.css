@@ -60,6 +60,38 @@
   flex: 1;
 }
 
+@media (max-width: 900px) {
+  .app__sidebar {
+    width: 220px !important;
+    min-width: 180px;
+  }
+
+  .app__note-list {
+    width: min(240px, 38vw) !important;
+    min-width: 160px;
+  }
+
+  .app__editor {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .app:has(.app__sidebar):has(.app__note-list) .app__sidebar {
+    width: min(58vw, 220px) !important;
+    min-width: 0;
+  }
+
+  .app:has(.app__sidebar):has(.app__note-list) .app__note-list {
+    width: max(0px, calc(100vw - min(58vw, 220px))) !important;
+    min-width: 0;
+  }
+
+  .app:has(.app__sidebar):has(.app__note-list) .app__editor {
+    display: none;
+  }
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -83,4 +115,13 @@
 
 .ai-highlight {
   animation: ai-highlight-glow 0.8s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
 }

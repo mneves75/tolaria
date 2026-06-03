@@ -1,4 +1,3 @@
-use crate::commands::expand_tilde;
 use crate::vault::filename_rules::validate_folder_name;
 use crate::vault::{self, FolderNode, VaultEntry};
 use std::path::{Path, PathBuf};
@@ -29,15 +28,6 @@ fn with_external_file_path<T>(
     action: impl FnOnce(&Path) -> Result<T, String>,
 ) -> Result<T, String> {
     with_note_path(path, vault_path, ValidatedPathMode::Existing, action)
-}
-
-fn with_expanded_vault_root<T>(
-    path: &Path,
-    action: impl FnOnce(&Path) -> Result<T, String>,
-) -> Result<T, String> {
-    let raw_path = path.to_string_lossy();
-    let expanded = expand_tilde(raw_path.as_ref()).into_owned();
-    action(Path::new(&expanded))
 }
 
 fn with_requested_root_path<T>(
@@ -280,7 +270,9 @@ pub fn copy_image_to_vault(
 #[tauri::command]
 pub async fn list_vault(path: PathBuf) -> Result<Vec<VaultEntry>, String> {
     tokio::task::spawn_blocking(move || {
-        with_expanded_vault_root(path.as_path(), scan_visible_vault_entries)
+        with_requested_root_path(path.as_path(), |requested_root| {
+            scan_visible_vault_entries(Path::new(requested_root))
+        })
     })
     .await
     .map_err(|e| format!("Task panicked: {e}"))?
@@ -289,7 +281,9 @@ pub async fn list_vault(path: PathBuf) -> Result<Vec<VaultEntry>, String> {
 #[tauri::command]
 pub async fn list_vault_folders(path: PathBuf) -> Result<Vec<FolderNode>, String> {
     tokio::task::spawn_blocking(move || {
-        with_expanded_vault_root(path.as_path(), scan_visible_vault_folders)
+        with_requested_root_path(path.as_path(), |requested_root| {
+            scan_visible_vault_folders(Path::new(requested_root))
+        })
     })
     .await
     .map_err(|e| format!("Task panicked: {e}"))?

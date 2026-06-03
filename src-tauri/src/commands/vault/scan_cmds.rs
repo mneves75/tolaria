@@ -4,7 +4,7 @@ use crate::vault::VaultEntry;
 use crate::{search, vault, vault_list};
 use std::path::{Path, PathBuf};
 
-use super::boundary::{with_validated_path, ValidatedPathMode};
+use super::boundary::{with_requested_root, with_validated_path, ValidatedPathMode};
 
 fn collect_registered_vault_roots(vault_list: &vault_list::VaultList) -> Vec<PathBuf> {
     let mut roots = vault_list
@@ -80,7 +80,7 @@ pub async fn reload_vault(
     app_handle: tauri::AppHandle,
     path: String,
 ) -> Result<Vec<crate::vault::VaultEntry>, String> {
-    let path = expand_tilde(&path).into_owned();
+    let path = with_requested_root(&path, |requested_root| Ok(requested_root.to_string()))?;
     crate::sync_vault_asset_scope(&app_handle, Path::new(&path))?;
     tokio::task::spawn_blocking(move || {
         let vault_path = Path::new(&path);
@@ -103,7 +103,8 @@ pub async fn search_vault(
     limit: Option<usize>,
     exclude_frontmatter: Option<bool>,
 ) -> Result<SearchResponse, String> {
-    let vault_path = expand_tilde(&vault_path).into_owned();
+    let vault_path =
+        with_requested_root(&vault_path, |requested_root| Ok(requested_root.to_string()))?;
     let limit = limit.unwrap_or(20);
     let exclude_frontmatter = exclude_frontmatter.unwrap_or(false);
     tokio::task::spawn_blocking(move || {

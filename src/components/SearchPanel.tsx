@@ -10,11 +10,13 @@ import { getTypeIcon } from './NoteItem'
 import { NoteTitleIcon } from './NoteTitleIcon'
 import { WorkspaceInitialsBadge } from './WorkspaceInitialsBadge'
 import { useDateDisplayFormat } from '../hooks/useAppPreferences'
+import { translate, type AppLocale } from '../lib/i18n'
 
 interface SearchPanelProps {
   open: boolean
   vaultPath: string
   entries: VaultEntry[]
+  locale?: AppLocale
   onSelectNote: (entry: VaultEntry) => void
   onClose: () => void
 }
@@ -308,6 +310,7 @@ export function SearchPanel({
   open,
   vaultPath,
   entries,
+  locale = 'en',
   onSelectNote,
   onClose,
 }: SearchPanelProps) {
@@ -350,6 +353,9 @@ export function SearchPanel({
   return (
     <div
       ref={rootRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={translate(locale, 'command.navigation.searchNotes')}
       className="fixed inset-0 z-[1000] flex justify-center bg-[var(--shadow-dialog)] pt-[15vh]"
     >
       <button

@@ -740,5 +740,21 @@
   "locale.plPL": "波蘭語",
   "locale.beBY": "白俄羅斯語",
   "locale.beLatn": "白俄羅斯語（拉丁語）",
-  "locale.idID": "印尼"
+  "locale.idID": "印尼",
+  "settings.appleNotes.heading": "Import",
+  "settings.appleNotes.title": "Import from Apple Notes",
+  "settings.appleNotes.description": "Copy your Apple Notes into this vault as markdown. Runs entirely on your Mac.",
+  "settings.appleNotes.action": "Import…",
+  "settings.appleNotes.dialogTitle": "Import from Apple Notes",
+  "settings.appleNotes.dialogIntro": "Tolaria will read your Apple Notes database on this Mac and copy your notes into the \"Apple Notes\" folder of this vault. Nothing is sent anywhere.",
+  "settings.appleNotes.consent": "Locked notes are skipped. Re-running never overwrites notes you've edited here.",
+  "settings.appleNotes.start": "Start import",
+  "settings.appleNotes.importing": "Importing your notes…",
+  "settings.appleNotes.doneTitle": "Import complete",
+  "settings.appleNotes.summary": "Imported {imported}, updated {updated}, preserved {preserved}, skipped {skipped}.",
+  "settings.appleNotes.errorTitle": "Import failed",
+  "settings.appleNotes.fdaBody": "Tolaria needs Full Disk Access to read Apple Notes. Open System Settings, enable Tolaria under Full Disk Access, then try again.",
+  "settings.appleNotes.openSettings": "Open System Settings",
+  "settings.appleNotes.close": "Close",
+  "settings.appleNotes.cancel": "Cancel"
 }

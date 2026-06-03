@@ -21,7 +21,11 @@ export function Toast({ message, onDismiss }: ToastProps) {
       "bg-secondary text-foreground px-5 py-2 rounded-lg text-[13px]",
       "shadow-[0_4px_16px_var(--shadow-dialog)]",
       "animate-in slide-in-from-bottom-2 fade-in duration-200"
-    )}>
+    )}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
       {message}
     </div>
   )

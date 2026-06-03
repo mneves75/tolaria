@@ -1,7 +1,7 @@
 use crate::git::GitAddRemoteResult;
 use serde::Deserialize;
 
-use super::expand_tilde;
+use super::vault::boundary::with_requested_root;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -13,7 +13,9 @@ pub struct GitAddRemoteRequest {
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn git_add_remote(request: GitAddRemoteRequest) -> Result<GitAddRemoteResult, String> {
-    let vault_path = expand_tilde(&request.vault_path).into_owned();
+    let vault_path = with_requested_root(&request.vault_path, |requested_root| {
+        Ok(requested_root.to_string())
+    })?;
     let remote_url = request.remote_url;
     tokio::task::spawn_blocking(move || crate::git::git_add_remote(&vault_path, &remote_url))
         .await

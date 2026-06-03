@@ -414,11 +414,14 @@ function OpenCommandPalette({
   }
 
   return (
-    <div
-      ref={rootRef}
-      data-command-palette="true"
-      className="fixed inset-0 z-[1000] flex justify-center bg-[var(--shadow-dialog)] pt-[15vh]"
-    >
+      <div
+        ref={rootRef}
+        data-command-palette="true"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('command.palettePlaceholder')}
+        className="fixed inset-0 z-[1000] flex justify-center bg-[var(--shadow-dialog)] pt-[15vh]"
+      >
       <button
         type="button"
         aria-label="Close command palette"

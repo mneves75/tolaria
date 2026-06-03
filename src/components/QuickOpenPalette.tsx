@@ -153,6 +153,9 @@ export function QuickOpenPalette({ open, entries, isLoading = false, onSelect, o
     <div
       ref={rootRef}
       data-testid="quick-open-palette"
+      role="dialog"
+      aria-modal="true"
+      aria-label={translate(locale, 'noteList.searchPlaceholder')}
       className="fixed inset-0 z-[1000] flex justify-center bg-[var(--shadow-dialog)] pt-[15vh]"
     >
       <button

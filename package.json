@@ -2,7 +2,7 @@
   "name": "tolaria",
   "private": true,
   "license": "AGPL-3.0-or-later",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -96,7 +96,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/coverage-v8": "^4.1.8",
     "esbuild": "^0.27.3",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -109,7 +109,7 @@
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.2",
     "vitepress": "^1.6.4",
-    "vitest": "^4.0.18",
+    "vitest": "^4.1.8",
     "ws": "^8.19.0"
   }
 }

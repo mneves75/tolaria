@@ -3,7 +3,7 @@ use crate::git::{
     PulseCommit,
 };
 
-use super::expand_tilde;
+use super::{expand_tilde, vault::boundary::with_requested_root};
 
 type VaultPathArg = String;
 type NotePathArg = String;
@@ -16,12 +16,17 @@ type LocalPathArg = String;
 // ── Git commands (desktop) ──────────────────────────────────────────────────
 
 #[cfg(desktop)]
+fn validated_git_vault_path(vault_path: &str) -> Result<String, String> {
+    with_requested_root(vault_path, |requested_root| Ok(requested_root.to_string()))
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub fn get_file_history(
     vault_path: VaultPathArg,
     path: NotePathArg,
 ) -> Result<Vec<GitCommit>, String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     let path = expand_tilde(&path);
     crate::git::get_file_history(&vault_path, &path)
 }
@@ -32,7 +37,7 @@ pub async fn get_modified_files(
     vault_path: VaultPathArg,
     include_stats: Option<bool>,
 ) -> Result<Vec<ModifiedFile>, String> {
-    let vault_path = expand_tilde(&vault_path).into_owned();
+    let vault_path = validated_git_vault_path(&vault_path)?;
     tokio::task::spawn_blocking(move || {
         if include_stats.unwrap_or(false) {
             crate::git::get_modified_files_with_stats(&vault_path)
@@ -47,7 +52,7 @@ pub async fn get_modified_files(
 #[cfg(desktop)]
 #[tauri::command]
 pub fn get_file_diff(vault_path: VaultPathArg, path: NotePathArg) -> Result<String, String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     let path = expand_tilde(&path);
     crate::git::get_file_diff(&vault_path, &path)
 }
@@ -59,7 +64,7 @@ pub fn get_file_diff_at_commit(
     path: NotePathArg,
     commit_hash: CommitHashArg,
 ) -> Result<String, String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     let path = expand_tilde(&path);
     crate::git::get_file_diff_at_commit(&vault_path, &path, &commit_hash)
 }
@@ -71,7 +76,7 @@ pub fn get_vault_pulse(
     limit: Option<usize>,
     skip: Option<usize>,
 ) -> Result<Vec<PulseCommit>, String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     let limit = limit.unwrap_or(20);
     let skip = skip.unwrap_or(0);
     crate::git::get_vault_pulse(&vault_path, limit, skip)
@@ -80,21 +85,21 @@ pub fn get_vault_pulse(
 #[cfg(desktop)]
 #[tauri::command]
 pub fn git_commit(vault_path: VaultPathArg, message: CommitMessageArg) -> Result<String, String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     crate::git::git_commit(&vault_path, &message)
 }
 
 #[cfg(desktop)]
 #[tauri::command]
 pub fn get_last_commit_info(vault_path: VaultPathArg) -> Result<Option<LastCommitInfo>, String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     crate::git::get_last_commit_info(&vault_path)
 }
 
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn git_pull(vault_path: VaultPathArg) -> Result<GitPullResult, String> {
-    let vault_path = expand_tilde(&vault_path).into_owned();
+    let vault_path = validated_git_vault_path(&vault_path)?;
     tokio::task::spawn_blocking(move || crate::git::git_pull(&vault_path))
         .await
         .map_err(|e| format!("Task panicked: {e}"))?
@@ -103,15 +108,16 @@ pub async fn git_pull(vault_path: VaultPathArg) -> Result<GitPullResult, String>
 #[cfg(desktop)]
 #[tauri::command]
 pub fn get_conflict_files(vault_path: VaultPathArg) -> Result<Vec<String>, String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     crate::git::get_conflict_files(&vault_path)
 }
 
 #[cfg(desktop)]
 #[tauri::command]
 pub fn get_conflict_mode(vault_path: VaultPathArg) -> String {
-    let vault_path = expand_tilde(&vault_path);
-    crate::git::get_conflict_mode(&vault_path)
+    validated_git_vault_path(&vault_path)
+        .map(|vault_path| crate::git::get_conflict_mode(&vault_path))
+        .unwrap_or_else(|_| "none".to_string())
 }
 
 #[cfg(desktop)]
@@ -121,21 +127,21 @@ pub fn git_resolve_conflict(
     file: NotePathArg,
     strategy: ConflictStrategyArg,
 ) -> Result<(), String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     crate::git::git_resolve_conflict(&vault_path, &file, &strategy)
 }
 
 #[cfg(desktop)]
 #[tauri::command]
 pub fn git_commit_conflict_resolution(vault_path: VaultPathArg) -> Result<String, String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     crate::git::git_commit_conflict_resolution(&vault_path)
 }
 
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn git_push(vault_path: VaultPathArg) -> Result<GitPushResult, String> {
-    let vault_path = expand_tilde(&vault_path).into_owned();
+    let vault_path = validated_git_vault_path(&vault_path)?;
     tokio::task::spawn_blocking(move || crate::git::git_push(&vault_path))
         .await
         .map_err(|e| format!("Task panicked: {e}"))?
@@ -144,7 +150,7 @@ pub async fn git_push(vault_path: VaultPathArg) -> Result<GitPushResult, String>
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn git_remote_status(vault_path: VaultPathArg) -> Result<GitRemoteStatus, String> {
-    let vault_path = expand_tilde(&vault_path).into_owned();
+    let vault_path = validated_git_vault_path(&vault_path)?;
     tokio::task::spawn_blocking(move || crate::git::git_remote_status(&vault_path))
         .await
         .map_err(|e| format!("Task panicked: {e}"))?
@@ -156,17 +162,16 @@ pub fn git_discard_file(
     vault_path: VaultPathArg,
     relative_path: NotePathArg,
 ) -> Result<(), String> {
-    let vault_path = expand_tilde(&vault_path);
+    let vault_path = validated_git_vault_path(&vault_path)?;
     crate::git::discard_file_changes(&vault_path, &relative_path)
 }
 
 #[cfg(desktop)]
 #[tauri::command]
 pub fn is_git_repo(vault_path: VaultPathArg) -> bool {
-    let vault_path = expand_tilde(&vault_path);
-    std::path::Path::new(vault_path.as_ref())
-        .join(".git")
-        .is_dir()
+    validated_git_vault_path(&vault_path)
+        .map(|vault_path| std::path::Path::new(&vault_path).join(".git").is_dir())
+        .unwrap_or(false)
 }
 
 #[cfg(desktop)]

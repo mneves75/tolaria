@@ -15,6 +15,7 @@ use tauri::LogicalSize;
 use tauri::Window;
 
 use super::parse_build_label;
+use super::vault::boundary::with_requested_root;
 
 #[cfg(desktop)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -108,7 +109,8 @@ fn apply_title_bar_double_click_action(
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn register_mcp_tools(vault_path: String) -> Result<String, String> {
-    let vault_path = super::expand_tilde(&vault_path).into_owned();
+    let vault_path =
+        with_requested_root(&vault_path, |requested_root| Ok(requested_root.to_string()))?;
     tokio::task::spawn_blocking(move || crate::mcp::register_mcp(&vault_path))
         .await
         .map_err(|e| format!("Registration task failed: {e}"))?
@@ -125,7 +127,8 @@ pub async fn remove_mcp_tools() -> Result<String, String> {
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn check_mcp_status(vault_path: String) -> Result<crate::mcp::McpStatus, String> {
-    let vault_path = super::expand_tilde(&vault_path).into_owned();
+    let vault_path =
+        with_requested_root(&vault_path, |requested_root| Ok(requested_root.to_string()))?;
     tokio::task::spawn_blocking(move || crate::mcp::check_mcp_status(&vault_path))
         .await
         .map_err(|e| format!("MCP status check failed: {e}"))
@@ -134,7 +137,8 @@ pub async fn check_mcp_status(vault_path: String) -> Result<crate::mcp::McpStatu
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn get_mcp_config_snippet(vault_path: String) -> Result<String, String> {
-    let vault_path = super::expand_tilde(&vault_path).into_owned();
+    let vault_path =
+        with_requested_root(&vault_path, |requested_root| Ok(requested_root.to_string()))?;
     tokio::task::spawn_blocking(move || crate::mcp::mcp_config_snippet(&vault_path))
         .await
         .map_err(|e| format!("MCP config task failed: {e}"))?

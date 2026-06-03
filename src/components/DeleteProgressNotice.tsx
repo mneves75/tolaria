@@ -23,8 +23,11 @@ export const DeleteProgressNotice = memo(function DeleteProgressNotice({
         'shadow-[0_4px_16px_var(--shadow-dialog)] animate-in slide-in-from-bottom-2 fade-in duration-200',
       )}
       data-testid="delete-progress-notice"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
     >
-      <Loader2 size={14} className="animate-spin text-muted-foreground" />
+      <Loader2 size={14} className="animate-spin text-muted-foreground" aria-hidden="true" />
       <span>{`Deleting ${describeNotes(count)}...`}</span>
     </div>
   )

@@ -775,6 +775,8 @@ The vault backend (`src-tauri/src/vault/`) is split into focused submodules:
 | `get_vault_ai_guidance_status` | Report whether `AGENTS.md`, `CLAUDE.md`, and optional `GEMINI.md` guidance are managed, missing, broken, or custom |
 | `restore_vault_ai_guidance` | Restore any missing/broken Tolaria-managed guidance files without overwriting custom ones |
 
+Existing-vault command wrappers validate their requested root through `commands/vault/boundary.rs` before touching disk, Git, MCP setup, asset scope, or import destinations. New-vault creation, clone, and Git initialization keep separate target validation because they run before a vault is necessarily registered or active.
+
 ### Frontmatter
 
 | Command | Description |

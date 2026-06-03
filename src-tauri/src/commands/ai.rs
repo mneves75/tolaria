@@ -5,7 +5,7 @@ use crate::ai_models::{AiModelProviderTestRequest, AiModelStreamRequest};
 use crate::claude_cli::{ChatStreamRequest, ClaudeCliStatus};
 use crate::vault::VaultAiGuidanceStatus;
 
-use super::expand_tilde;
+use super::{expand_tilde, vault::boundary::with_requested_root};
 
 #[cfg(desktop)]
 type StreamEmitter<Event> = Box<dyn Fn(Event) + Send>;
@@ -118,14 +118,16 @@ pub fn get_agent_docs_path(app_handle: tauri::AppHandle) -> Result<String, Strin
 
 #[tauri::command]
 pub fn get_vault_ai_guidance_status(vault_path: String) -> Result<VaultAiGuidanceStatus, String> {
-    let vault_path = expand_tilde(&vault_path);
-    crate::vault::get_ai_guidance_status(vault_path.as_ref())
+    with_requested_root(&vault_path, |requested_root| {
+        crate::vault::get_ai_guidance_status(requested_root)
+    })
 }
 
 #[tauri::command]
 pub fn restore_vault_ai_guidance(vault_path: String) -> Result<VaultAiGuidanceStatus, String> {
-    let vault_path = expand_tilde(&vault_path);
-    crate::vault::restore_ai_guidance_files(vault_path.as_ref())
+    with_requested_root(&vault_path, |requested_root| {
+        crate::vault::restore_ai_guidance_files(requested_root)
+    })
 }
 
 #[cfg(desktop)]

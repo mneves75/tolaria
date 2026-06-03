@@ -1692,7 +1692,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
           locale={appLocale}
           onClose={dialogs.closeCommandPalette}
         />
-        <SearchPanel open={dialogs.showSearch} vaultPath={resolvedPath} entries={visibleEntries} onSelectNote={notes.handleSelectNote} onClose={dialogs.closeSearch} />
+        <SearchPanel open={dialogs.showSearch} vaultPath={resolvedPath} entries={visibleEntries} locale={appLocale} onSelectNote={notes.handleSelectNote} onClose={dialogs.closeSearch} />
         <CreateTypeDialog open={dialogs.showCreateTypeDialog} onClose={dialogs.closeCreateType} onCreate={handleCreateType} />
         <NoteRetargetingDialogs
           dialogState={noteRetargetingUi.dialogState}

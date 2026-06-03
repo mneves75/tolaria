@@ -2,10 +2,11 @@ use crate::commands::expand_tilde;
 use crate::{git, vault};
 use std::path::Path;
 
+use super::boundary::with_requested_root;
+
 #[tauri::command]
 pub fn migrate_is_a_to_type(vault_path: String) -> Result<usize, String> {
-    let vault_path = expand_tilde(&vault_path);
-    vault::migrate_is_a_to_type(&vault_path)
+    with_requested_root(&vault_path, vault::migrate_is_a_to_type)
 }
 
 #[tauri::command]
@@ -84,11 +85,12 @@ pub fn get_default_vault_path() -> Result<String, String> {
 
 #[tauri::command]
 pub fn repair_vault(vault_path: String) -> Result<String, String> {
-    let vault_path = expand_tilde(&vault_path);
-    vault::migrate_is_a_to_type(&vault_path)?;
-    vault::repair_config_files(&vault_path)?;
-    git::ensure_gitignore(std::path::Path::new(vault_path.as_ref()))?;
-    Ok("Vault repaired".to_string())
+    with_requested_root(&vault_path, |requested_root| {
+        vault::migrate_is_a_to_type(requested_root)?;
+        vault::repair_config_files(requested_root)?;
+        git::ensure_gitignore(std::path::Path::new(requested_root))?;
+        Ok("Vault repaired".to_string())
+    })
 }
 
 #[cfg(test)]

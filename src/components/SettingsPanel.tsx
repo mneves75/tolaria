@@ -447,6 +447,9 @@ function SettingsPanelInner({
       className="fixed inset-0 z-[1300] flex items-center justify-center"
       style={{ background: 'var(--shadow-overlay)' }}
       data-testid="settings-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('settings.title')}
     >
       <SettingsBackdropCloseButton onClose={onClose} t={t} />
       <div

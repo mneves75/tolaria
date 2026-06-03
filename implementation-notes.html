@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Tolaria Review Implementation Notes</title>
+    <style>
+      body { font-family: system-ui, sans-serif; line-height: 1.5; max-width: 980px; margin: 32px auto; padding: 0 20px; color: #1f2937; }
+      h1, h2 { line-height: 1.2; }
+      code { background: #f3f4f6; padding: 0.1rem 0.3rem; border-radius: 4px; }
+      .blocker { color: #991b1b; font-weight: 600; }
+      .ok { color: #166534; font-weight: 600; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; vertical-align: top; }
+      th { background: #f9fafb; }
+    </style>
+  </head>
+  <body>
+    <h1>Tolaria Production Readiness Review</h1>
+    <p><strong>Scope locked:</strong> repo root <code>/Users/mneves/dev/tolaria</code>, branch <code>main</code>, remote <code>origin https://github.com/mneves75/tolaria.git</code>. Package manager is pnpm by lockfile/workspace. Architecture is Vite + React 19 + Tauri 2, with Tailwind v4, shadcn/radix UI, Rust backend, Vitest/Playwright/cargo tests.</p>
+    <p><strong>Initial git state:</strong> <code>main</code> is 17 commits ahead of <code>origin/main</code>; no tracked or untracked short-status dirt was reported before edits. Recent unpushed work is the Apple Notes import stack.</p>
+
+    <h2>Tooling and Gate Baseline</h2>
+    <table>
+      <thead><tr><th>Gate</th><th>Starting evidence</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>CodeScene project gate</td><td>Required MCP tool is not exposed in this Codex tool surface. Fallback <code>cs</code> CLI is not installed. <code>CODESCENE_PAT</code> and <code>CODESCENE_PROJECT_ID</code> are absent from the environment. Thresholds are <code>HOTSPOT_THRESHOLD=10.0</code> and <code>AVERAGE_THRESHOLD=9.95</code>.</td><td class="blocker">Blocked externally; use local review/tests as next-best evidence.</td></tr>
+        <tr><td>Codacy security/static gate</td><td>Codacy MCP is not exposed. <code>.codacy/cli.sh</code> is absent. <code>codacy</code> CLI is not installed. No Codacy env credentials are present.</td><td class="blocker">Blocked externally; use local static scans and tests as next-best evidence.</td></tr>
+        <tr><td>Modern web guidance</td><td>Retrieved current local guidance for accessibility, CSS architecture, fluid/container scaling, and accessible error announcement.</td><td class="ok">Complete.</td></tr>
+        <tr><td>shadcn project context</td><td><code>npx shadcn@latest info --json</code>: Vite, Tailwind v4, radix base, Phosphor icons, installed UI primitives include button, dialog, input, select, switch, tabs, textarea, tooltip.</td><td class="ok">Complete.</td></tr>
+        <tr><td>Claude Code frontend review</td><td><code>claude --version</code> returned <code>2.1.161</code>; read-only review launched with Read/Grep/Glob only. The command failed before producing review output with <code>Error: Exceeded USD budget (1)</code>.</td><td class="blocker">Blocked by Claude budget; continued with Codex native design review.</td></tr>
+        <tr><td>Codex native reviews</td><td>Read-only code-reviewer, designer, and architect subagents launched. Code/architecture reviews found native trust-boundary and release-gate blockers. Design review found narrow-window clipping plus accessibility/localization/shadcn issues.</td><td class="ok">Initial pass complete; fixes in progress.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Current Decisions</h2>
+    <ul>
+      <li>Do not add dependencies unless a critical/high issue cannot be fixed with existing primitives. Existing dependencies already include DOMPurify and safe-regex2 for high-risk markup/regex paths.</li>
+      <li>Focus first on the unpushed Apple Notes import surface and app-wide critical/high security/correctness issues; medium UI polish follows only after blockers are resolved.</li>
+      <li>Use current official docs where framework/API behavior materially affects a fix. Current local guidance already confirmed modern accessibility/CSS expectations for web UI work.</li>
+    </ul>
+
+    <h2>Validation Log</h2>
+    <ul>
+      <li>Initial scope: <code>pwd</code> and <code>git rev-parse --show-toplevel</code> both resolved to <code>/Users/mneves/dev/tolaria</code>.</li>
+      <li>Initial status: <code>git status --short --branch</code> reported <code>## main...origin/main [ahead 17]</code>.</li>
+      <li>Static security scan started with ripgrep over HTML/JS execution sinks, external URL handling, storage, env exposure, secrets terms, and sanitizer boundaries.</li>
+      <li><code>cargo test --manifest-path src-tauri/Cargo.toml import::run --lib</code>: 7 passed, 0 failed.</li>
+      <li><code>cargo test --manifest-path src-tauri/Cargo.toml commands::apple_notes_import --lib</code>: 4 passed, 0 failed.</li>
+      <li><code>cargo test --manifest-path src-tauri/Cargo.toml pi_ --lib -- --nocapture</code>: 24 passed, 0 failed, including the two Pi stream regressions reported by the first review.</li>
+      <li><code>cargo test --manifest-path src-tauri/Cargo.toml commands:: --lib</code>: 91 passed, 0 failed.</li>
+      <li><code>pnpm test</code> under Vitest 4.0.18: 393 files, 4,340 tests passed before the dependency upgrade.</li>
+      <li><code>pnpm up -D vitest@^4.1.0 @vitest/coverage-v8@^4.1.0</code> installed Vitest 4.1.8 and coverage-v8 4.1.8.</li>
+      <li><code>pnpm audit --audit-level high</code> after the Vitest upgrade: no high/critical advisories; 11 moderate advisories remain.</li>
+      <li><code>pnpm test</code> under Vitest 4.1.8: 393 files, 4,340 tests passed.</li>
+      <li><code>git diff --check</code>: passed.</li>
+      <li><code>pnpm l10n:validate</code> initially failed because existing Apple Notes import keys were missing from every non-English catalog. <code>pnpm l10n:translate</code> was blocked by missing <code>LARA_ACCESS_KEY_ID</code> and <code>LARA_ACCESS_KEY_SECRET</code>. Added English fallback values for those keys in every target catalog; <code>pnpm l10n:validate</code> then passed for 18 catalogs and 758 English keys.</li>
+    </ul>
+
+    <h2>Confirmed Findings and Fixes</h2>
+    <table>
+      <thead><tr><th>Severity</th><th>Finding</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td class="blocker">BLOCK</td><td>Architect review found registered Tauri scan/list/search/reload commands using renderer-supplied vault roots without the shared vault boundary. A compromised/stale renderer path could scan/search/cache/scope assets for an arbitrary local directory.</td><td>Patched <code>list_vault</code>, <code>list_vault_folders</code>, <code>reload_vault</code>, and <code>search_vault</code> to validate requested roots through <code>with_requested_root</code> before scanning, searching, cache invalidation, or asset-scope sync.</td></tr>
+        <tr><td class="blocker">HIGH</td><td>Folder, Git, guidance, migration/repair, and MCP command wrappers trusted renderer-supplied vault roots before existing-vault filesystem, Git, or configuration operations.</td><td>Patched existing-vault wrappers to validate vault roots through the shared boundary before invoking filesystem, Git, guidance, or MCP operations. New-vault creation, Git initialization, and clone flows intentionally keep their separate target validation because they operate before a vault is registered or active.</td></tr>
+        <tr><td class="blocker">HIGH</td><td>Designer runtime smoke showed narrow web windows clipping the editor because persisted sidebar/list widths plus the editor minimum exceeded the viewport under an overflow-hidden app shell.</td><td>Patched responsive app-shell CSS below 900px to cap the sidebar/note-list widths and allow the editor flex item to shrink instead of being clipped. This preserves all three panes while keeping editor content reachable in browser/narrow-window QA.</td></tr>
+        <tr><td>MEDIUM</td><td>Custom pulse/glow/spinner animations had no reduced-motion policy.</td><td>Added a global <code>prefers-reduced-motion: reduce</code> rule to collapse animation/transition durations and avoid repeated motion for users who request it.</td></tr>
+        <tr><td>MEDIUM</td><td>Transient feedback was visual-only and custom overlays lacked dialog semantics.</td><td>Added polite live-region semantics to toast/delete progress notices and dialog/modal semantics to Settings, Command Palette, Quick Open, and Search overlays. Full shadcn/Radix Dialog migration remains intentionally deferred because it is a broad interaction rewrite; the current patch fixes assistive-technology discoverability without changing overlay behavior.</td></tr>
+        <tr><td>MEDIUM</td><td>Phone-width browser QA still showed the desktop three-pane layout clipping an offscreen editor placeholder in all-panels mode.</td><td>Added a 640px responsive rule that keeps sidebar and note list inside the viewport and hides only the editor pane when both navigation panes are visible. Editor-only and note-list-only modes remain available through existing view-mode controls.</td></tr>
+        <tr><td class="blocker">HIGH</td><td><code>pnpm audit --audit-level high</code> reported GHSA-5xrq-8626-4rwp against Vitest &lt;4.1.0.</td><td>Updated <code>vitest</code> and <code>@vitest/coverage-v8</code> to 4.1.8. Re-ran audit and full Vitest suite successfully.</td></tr>
+        <tr><td>RELEASE</td><td>Version bump requested as part of completion.</td><td>Bumped package, Tauri, Cargo, and Cargo.lock Tolaria package version from <code>0.1.0</code> to <code>0.1.1</code>.</td></tr>
+        <tr><td class="blocker">HIGH</td><td>Apple Notes import accepted a renderer-supplied vault path without shared boundary validation.</td><td>Patched <code>import_apple_notes</code> to route through <code>with_requested_root</code> before planning destination and manifest paths.</td></tr>
+        <tr><td class="blocker">HIGH</td><td>Fresh Apple Notes import could overwrite an existing destination markdown file with the same slug because collision tracking only used the prior manifest and new writes used overwrite-capable save semantics.</td><td>Patched import orchestration to seed collisions from existing destination <code>.md</code> files and use <code>create_note_content</code> for new imports. Added regression coverage for preserving an existing file and writing <code>-2</code>.</td></tr>
+        <tr><td class="blocker">HIGH</td><td>Prior import manifest entries were trusted as destination paths; a tampered manifest could point outside the Apple Notes import folder.</td><td>Patched manifest destination validation to reject absolute paths, <code>.</code>, <code>..</code>, roots/prefixes, non-<code>.md</code>, and empty paths before seeding collisions or reusing prior paths. Added regression coverage.</td></tr>
+        <tr><td class="blocker">HIGH</td><td>Full Rust tests exposed two Pi CLI tests that depended on host Pi agent configuration and failed when <code>~/.pi/agent</code> contained a stale entry.</td><td>Patched Pi config seeding to ignore vanished/stale config entries and added a stale-symlink regression test. Full Rust tests and Rust coverage now pass.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Final Review Result</h2>
+    <ul>
+      <li>Post-fix Codex code-reviewer reviewed 43 changed paths and reported <strong>0 critical/high blockers</strong>.</li>
+      <li>Remaining medium follow-ups from review: real translations for Apple Notes strings once Lara credentials are available, and a future API migration for <code>get_conflict_mode</code>/<code>is_git_repo</code> so unavailable-vault validation failures are not collapsed into legacy <code>none</code>/<code>false</code> status values.</li>
+      <li>PostHog: no new event needed because this pass hardens existing command/import/runtime behavior and responsive/accessibility affordances; it does not add a new user action or funnel.</li>
+      <li>ADRs: none. The boundary changes reuse the existing vault-boundary abstraction and do not introduce a new architectural pattern or dependency.</li>
+    </ul>
+
+    <h2>Final Verification Evidence</h2>
+    <table>
+      <thead><tr><th>Command / Check</th><th>Outcome</th></tr></thead>
+      <tbody>
+        <tr><td><code>pnpm lint</code></td><td class="ok">Passed with zero ESLint warnings/errors.</td></tr>
+        <tr><td><code>npx tsc --noEmit</code></td><td class="ok">Passed.</td></tr>
+        <tr><td><code>pnpm build</code></td><td class="ok">Passed. Vite still reports existing dynamic/static import and chunk-size warnings; no build failure.</td></tr>
+        <tr><td><code>pnpm test</code></td><td class="ok">Passed under Vitest 4.1.8: 393 files, 4,340 tests.</td></tr>
+        <tr><td><code>pnpm test:coverage</code></td><td class="ok">Passed: 87.77% frontend line coverage, above the 70% gate.</td></tr>
+        <tr><td><code>cargo fmt --manifest-path src-tauri/Cargo.toml --check</code></td><td class="ok">Passed.</td></tr>
+        <tr><td><code>cargo test --manifest-path src-tauri/Cargo.toml</code></td><td class="ok">Passed: 1,032 lib tests, 1 integration test, 0 failures, 3 ignored.</td></tr>
+        <tr><td><code>LLVM_COV="$(xcrun -f llvm-cov)" LLVM_PROFDATA="$(xcrun -f llvm-profdata)" cargo llvm-cov --manifest-path src-tauri/Cargo.toml --no-clean --fail-under-lines 85</code></td><td class="ok">Passed: 85.53% Rust line coverage. Direct run without env failed because <code>llvm-tools-preview</code> was unavailable and <code>rustup</code> is not installed; <code>xcrun</code> fallback worked.</td></tr>
+        <tr><td><code>pnpm audit --audit-level high</code></td><td class="ok">Passed with no high/critical advisories after Vitest upgrade; 11 moderate advisories remain.</td></tr>
+        <tr><td><code>cargo audit</code></td><td class="ok">Exit 0. Reported 20 allowed warnings from transitive Tauri/WebKit/GTK/Sentry/urlpattern dependency chains; no failing vulnerability gate.</td></tr>
+        <tr><td><code>pnpm l10n:validate</code></td><td class="ok">Passed for 18 locale catalogs and 758 English keys. Actual translation generation is blocked by missing Lara credentials, so newly added non-English Apple Notes strings are English fallbacks.</td></tr>
+        <tr><td><code>pnpm docs:build</code></td><td class="ok">Passed; generated 42 agent docs and built VitePress.</td></tr>
+        <tr><td><code>BASE_URL="http://localhost:5201" pnpm playwright:smoke</code></td><td class="ok">Passed: 54/54 Chromium smoke tests in 4.4 minutes.</td></tr>
+        <tr><td>Browser visual probes</td><td class="ok">Desktop screenshot <code>/tmp/tolaria-final-desktop.png</code>: all panes visible, no horizontal overflow. Mobile screenshot <code>/tmp/tolaria-final-mobile.png</code>: sidebar and note list fit within 390px viewport, editor hidden in all-panels state, no console errors after filtering intentional mock API fallback.</td></tr>
+        <tr><td>Native Tauri QA</td><td class="ok">Started <code>pnpm tauri dev</code>, focused native process <code>tolaria</code>, captured <code>/tmp/tolaria-native.png</code>. Repo QA scripts under <code>~/.openclaw/skills/tolaria-qa/scripts/</code> were missing, so macOS <code>osascript</code> + <code>screencapture</code> was used. The native run opened the configured user vault; no interactions or writes were performed.</td></tr>
+        <tr><td><code>git diff --check</code></td><td class="ok">Passed.</td></tr>
+        <tr><td><code>git status --short -- demo-vault demo-vault-v2</code></td><td class="ok">No output; demo vault fixtures are clean.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Open Risks</h2>
+    <ul>
+      <li class="blocker">Project-wide CodeScene and Codacy gates cannot be executed locally without the missing MCP/CLI/API credentials. This must stay explicit in final evidence.</li>
+      <li>No local staging deploy script exists in <code>package.json</code>. Release/deploy docs point to GitHub Actions Pages/release workflows, so deployment depends on push/workflow permissions rather than a local staging command.</li>
+      <li>Remaining design follow-ups are medium: migrate custom overlays fully to shadcn/Radix Dialog primitives, add active-descendant/roving-focus improvements to listbox patterns, and continue moving legacy hardcoded UI copy/raw controls to the app localization/shadcn systems.</li>
+      <li>Localization quality remains medium risk until <code>pnpm l10n:translate</code> can run with Lara credentials and replace English fallback strings in non-English Apple Notes keys.</li>
+    </ul>
+  </body>
+</html>
