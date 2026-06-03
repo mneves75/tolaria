@@ -301,6 +301,7 @@ export function SettingsPanel({
   systemLocale = locale,
   onSave,
   onCopyMcpConfig,
+  vaultPath,
   vaults = [],
   defaultWorkspacePath = null,
   onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity,
@@ -320,6 +321,7 @@ export function SettingsPanel({
       systemLocale={systemLocale}
       onSave={onSave}
       onCopyMcpConfig={onCopyMcpConfig}
+      vaultPath={vaultPath}
       vaults={vaults}
       defaultWorkspacePath={defaultWorkspacePath}
       {...{ onRemoveVault, onReorderVaults, onSetDefaultWorkspace, onUpdateWorkspaceIdentity }}

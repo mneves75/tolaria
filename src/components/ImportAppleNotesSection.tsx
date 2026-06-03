@@ -58,7 +58,8 @@ export function ImportAppleNotesSection({ t, vaultPath }: ImportAppleNotesSectio
       </SettingsGroup>
 
       <Dialog open={open} onOpenChange={(next) => { if (!next) close() }}>
-        <DialogContent data-testid="apple-notes-import-dialog">
+        {/* The Settings panel is a custom modal at z-[1300]; lift this dialog above it. */}
+        <DialogContent data-testid="apple-notes-import-dialog" className="z-[1400]">
           <ImportDialogBody t={t} importer={importer} onClose={close} />
         </DialogContent>
       </Dialog>
