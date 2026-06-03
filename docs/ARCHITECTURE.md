@@ -568,6 +568,24 @@ Tolaria no longer implements provider-specific OAuth or remote-repository APIs. 
 - No provider tokens are stored in Tolaria settings
 - The same flow works for GitHub, GitLab, Bitbucket, Gitea, and self-hosted remotes
 
+## Apple Notes Import (macOS)
+
+Tolaria can import a macOS Apple Notes library into the active vault as plain markdown. It is one direction of the vision's "absorb scattered knowledge" goal, and it follows the filesystem-as-truth principle: imported notes are ordinary `.md` files, named and shaped exactly like notes created by hand.
+
+**Pipeline** (`src-tauri/src/import/`, each layer pure and tested in isolation):
+
+1. `store` — copy `NoteStore.sqlite` plus its `-wal`/`-shm` sidecars to a throwaway dir and open the *copy* read-write so the WAL is checkpointed. A read-only open cannot replay the WAL and would silently drop the user's most recent notes. The created/modified date columns are resolved at runtime (Apple renames them across versions; a real database used `ZCREATIONDATE3` / `ZMODIFICATIONDATE1`).
+2. `body` — gunzip the note blob and decode the protobuf with the vendored MIT `notestore.proto` (compiled by protox/prost, so no system `protoc`).
+3. `convert` — Apple formatting runs → markdown (headings, bold/italic, lists, checklists, code, blockquotes, links), tiling runs by UTF-16 code units.
+4. `materialize` — note title → slug filename via the app's own `title_to_slug`, with collision and length handling.
+5. `assemble` — `RawNote` → markdown body + Core Data → Unix dates.
+6. `manifest` — a per-run manifest (source id → path + content hash) persisted under `<vault>/.tolaria/`. It makes re-import idempotent and, crucially, never overwrites a note the user edited after a prior import, and never resurrects a deleted one.
+7. `run` — orchestration that writes via the existing `vault::save_note_content` and applies the note's modified time to the file.
+
+**Surface:** the `import_apple_notes(vault_path)` Tauri command runs the import off-thread into `<vault>/Apple Notes`, persists the manifest, and maps a Full-Disk-Access permission failure to an `FDA_REQUIRED` message. The UI is an entry in **Settings → Content** (rendered only on macOS with a vault open) that opens a dialog with a consent explainer, progress, a result summary, and an "Open System Settings" deep link when Full Disk Access is missing.
+
+**Status:** text, formatting, lists, checklists, internal links → wikilinks, hashtags → tags, folders, and dates are imported; CRDT tables, attachments, and encrypted (locked) notes are not yet (locked notes are skipped and reported). Validated against a real 2,274-note library at 99.9% body decode. See ADRs 0137–0140.
+
 ## Pulse View
 
 `PulseView` is a git activity feed that replaces the NoteList when the Pulse filter is selected.

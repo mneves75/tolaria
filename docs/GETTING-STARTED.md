@@ -318,6 +318,9 @@ tolaria/
 | `src-tauri/src/cli_agent_runtime.rs` | Shared CLI-agent request shape, prompt wrapping, JSON subprocess lifecycle, version probing, and MCP path helpers. |
 | `src-tauri/src/claude_cli.rs`, `src-tauri/src/codex_cli.rs`, `src-tauri/src/opencode_cli.rs`, `src-tauri/src/pi_cli.rs`, `src-tauri/src/gemini_cli.rs`, `src-tauri/src/kiro_cli.rs` | Per-agent command, config, discovery, and event adapters. |
 | `src-tauri/src/app_updater.rs` | Desktop updater bridge — resolves alpha/stable manifests and streams install progress. |
+| `src-tauri/src/import/` | Apple Notes import pipeline (macOS): `store` (WAL-safe SQLite read), `body` (gzip+protobuf decode), `convert` (runs→markdown), `materialize` (slug filenames), `assemble`, `manifest` (idempotent re-import), `run` (orchestration). |
+| `src-tauri/src/commands/apple_notes_import.rs` | `import_apple_notes` command — runs the import into `<vault>/Apple Notes`, maps Full-Disk-Access errors. |
+| `src/hooks/useAppleNotesImport.ts`, `src/components/ImportAppleNotesSection.tsx` | Frontend hook + Settings → Content dialog for the import (macOS only). |
 
 ### Editor
 
