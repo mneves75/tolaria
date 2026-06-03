@@ -104,13 +104,15 @@
         <tr><td>Native Tauri QA</td><td class="ok">Started <code>pnpm tauri dev</code>, focused native process <code>tolaria</code>, captured <code>/tmp/tolaria-native.png</code>. Repo QA scripts under <code>~/.openclaw/skills/tolaria-qa/scripts/</code> were missing, so macOS <code>osascript</code> + <code>screencapture</code> was used. The native run opened the configured user vault; no interactions or writes were performed.</td></tr>
         <tr><td><code>git diff --check</code></td><td class="ok">Passed.</td></tr>
         <tr><td><code>git status --short -- demo-vault demo-vault-v2</code></td><td class="ok">No output; demo vault fixtures are clean.</td></tr>
+        <tr><td><code>LLVM_COV="$(xcrun -f llvm-cov)" LLVM_PROFDATA="$(xcrun -f llvm-profdata)" git push origin main</code></td><td class="ok">Passed. The pre-push hook reran lint, build, frontend coverage, Rust lint, Rust coverage, Playwright smoke, and the CodeScene hook. CodeScene was skipped by the hook with <code>CODESCENE_PAT or CODESCENE_PROJECT_ID not set</code>; all executable gates passed and <code>b410c407</code> pushed to <code>origin/main</code>.</td></tr>
+        <tr><td>Staging/deploy check</td><td>No dedicated staging script exists in <code>package.json</code>. This checkout pushes to fork <code>mneves75/tolaria</code>, whose workflows are active but report <code>Total runs 0</code> for <code>Release (Alpha)</code> and <code>gh run list --branch main</code> returned <code>[]</code>. The deploy workflow present in this repo is <code>Deploy docs</code>, which publishes GitHub Pages rather than a staging environment; no safe staging target was available to deploy.</td></tr>
       </tbody>
     </table>
 
     <h2>Open Risks</h2>
     <ul>
       <li class="blocker">Project-wide CodeScene and Codacy gates cannot be executed locally without the missing MCP/CLI/API credentials. This must stay explicit in final evidence.</li>
-      <li>No local staging deploy script exists in <code>package.json</code>. Release/deploy docs point to GitHub Actions Pages/release workflows, so deployment depends on push/workflow permissions rather than a local staging command.</li>
+      <li>No local staging deploy script or staging workflow exists in this checkout. The only deploy workflow publishes GitHub Pages, and the fork remote reported no Actions runs after the successful push.</li>
       <li>Remaining design follow-ups are medium: migrate custom overlays fully to shadcn/Radix Dialog primitives, add active-descendant/roving-focus improvements to listbox patterns, and continue moving legacy hardcoded UI copy/raw controls to the app localization/shadcn systems.</li>
       <li>Localization quality remains medium risk until <code>pnpm l10n:translate</code> can run with Lara credentials and replace English fallback strings in non-English Apple Notes keys.</li>
     </ul>
