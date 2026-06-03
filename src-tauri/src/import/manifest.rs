@@ -144,8 +144,7 @@ pub fn resolve_reimport(
 #[cfg(test)]
 mod tests {
     use super::{
-        resolve_reimport, ImportManifest, ManifestEntry, ReimportDecision,
-        CURRENT_MANIFEST_VERSION,
+        resolve_reimport, ImportManifest, ManifestEntry, ReimportDecision, CURRENT_MANIFEST_VERSION,
     };
 
     fn entry(source_id: &str, hash: &str) -> ManifestEntry {
@@ -211,7 +210,10 @@ mod tests {
             manifest.decide("apple-1", Some("edited")),
             ReimportDecision::PreserveUserEdit
         );
-        assert_eq!(manifest.decide("apple-1", None), ReimportDecision::SkipDeleted);
+        assert_eq!(
+            manifest.decide("apple-1", None),
+            ReimportDecision::SkipDeleted
+        );
         assert_eq!(manifest.decide("unknown", None), ReimportDecision::Create);
     }
 

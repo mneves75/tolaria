@@ -97,7 +97,9 @@ mod tests {
 
     #[test]
     fn detects_permission_errors() {
-        assert!(is_permission_error("failed to copy …: Permission denied (os error 13)"));
+        assert!(is_permission_error(
+            "failed to copy …: Permission denied (os error 13)"
+        ));
         assert!(is_permission_error("Permission denied"));
         assert!(!is_permission_error("some unrelated error"));
     }

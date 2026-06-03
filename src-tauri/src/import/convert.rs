@@ -196,7 +196,11 @@ fn render_lines(lines: &[Line]) -> String {
 }
 
 fn render_numbered(line: &Line, number: u32) -> String {
-    format!("{}{number}. {}", indent_prefix(line.indent), inline_text(line))
+    format!(
+        "{}{number}. {}",
+        indent_prefix(line.indent),
+        inline_text(line)
+    )
 }
 
 /// Render one non-numbered line. Inside a code fence, emit raw text.

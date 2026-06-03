@@ -77,7 +77,11 @@ impl<'a> ImportContext<'a> {
     fn new(prior: &'a ImportManifest) -> Self {
         // Seed taken stems with the prior run's paths so a newly-added note
         // never collides with a note we already placed.
-        let taken = prior.entries.values().map(|e| stem_of(&e.dest_path)).collect();
+        let taken = prior
+            .entries
+            .values()
+            .map(|e| stem_of(&e.dest_path))
+            .collect();
         Self {
             prior,
             manifest: ImportManifest::new(SOURCE),
@@ -107,8 +111,12 @@ impl<'a> ImportContext<'a> {
         match self.prior.decide(&raw.source_id, on_disk.as_deref()) {
             ReimportDecision::SkipDeleted => self.skip(raw, "deleted after a prior import"),
             ReimportDecision::PreserveUserEdit => self.preserve(raw, rel_path),
-            ReimportDecision::Create => self.write(&abs_path, &rel_path, &assembled, new_hash, false)?,
-            ReimportDecision::Update => self.write(&abs_path, &rel_path, &assembled, new_hash, true)?,
+            ReimportDecision::Create => {
+                self.write(&abs_path, &rel_path, &assembled, new_hash, false)?
+            }
+            ReimportDecision::Update => {
+                self.write(&abs_path, &rel_path, &assembled, new_hash, true)?
+            }
         }
         Ok(())
     }
@@ -120,7 +128,10 @@ impl<'a> ImportContext<'a> {
         if let Some(entry) = self.prior.entry(&assembled.source_id) {
             return entry.dest_path.clone();
         }
-        format!("{}.md", materialize::unique_stem(&assembled.title, &mut self.taken))
+        format!(
+            "{}.md",
+            materialize::unique_stem(&assembled.title, &mut self.taken)
+        )
     }
 
     fn write(
@@ -173,7 +184,10 @@ impl<'a> ImportContext<'a> {
 }
 
 fn stem_of(dest_path: &str) -> String {
-    dest_path.strip_suffix(".md").unwrap_or(dest_path).to_string()
+    dest_path
+        .strip_suffix(".md")
+        .unwrap_or(dest_path)
+        .to_string()
 }
 
 fn sha256_hex(content: &str) -> String {
@@ -245,16 +259,32 @@ mod tests {
     #[test]
     fn fresh_import_writes_notes() {
         let src = TempDir::new().unwrap();
-        make_store(src.path(), &[("a", "First Note", "alpha", false), ("b", "Second", "beta", false)]);
+        make_store(
+            src.path(),
+            &[
+                ("a", "First Note", "alpha", false),
+                ("b", "Second", "beta", false),
+            ],
+        );
         let vault = TempDir::new().unwrap();
 
-        let (report, manifest) =
-            run_import(src.path(), vault.path(), &ImportManifest::new("apple-notes")).unwrap();
+        let (report, manifest) = run_import(
+            src.path(),
+            vault.path(),
+            &ImportManifest::new("apple-notes"),
+        )
+        .unwrap();
 
         assert_eq!(report.imported, 2);
         assert_eq!(report.updated, 0);
-        assert_eq!(fs::read_to_string(vault.path().join("first-note.md")).unwrap(), "alpha");
-        assert_eq!(fs::read_to_string(vault.path().join("second.md")).unwrap(), "beta");
+        assert_eq!(
+            fs::read_to_string(vault.path().join("first-note.md")).unwrap(),
+            "alpha"
+        );
+        assert_eq!(
+            fs::read_to_string(vault.path().join("second.md")).unwrap(),
+            "beta"
+        );
         assert_eq!(manifest.entries.len(), 2);
     }
 
@@ -264,8 +294,12 @@ mod tests {
         make_store(src.path(), &[("a", "Note", "body", false)]);
         let vault = TempDir::new().unwrap();
 
-        let (_, manifest) =
-            run_import(src.path(), vault.path(), &ImportManifest::new("apple-notes")).unwrap();
+        let (_, manifest) = run_import(
+            src.path(),
+            vault.path(),
+            &ImportManifest::new("apple-notes"),
+        )
+        .unwrap();
         let (report, _) = run_import(src.path(), vault.path(), &manifest).unwrap();
 
         assert_eq!(report.imported, 0);
@@ -282,8 +316,12 @@ mod tests {
         make_store(src.path(), &[("a", "Note", "original", false)]);
         let vault = TempDir::new().unwrap();
 
-        let (_, manifest) =
-            run_import(src.path(), vault.path(), &ImportManifest::new("apple-notes")).unwrap();
+        let (_, manifest) = run_import(
+            src.path(),
+            vault.path(),
+            &ImportManifest::new("apple-notes"),
+        )
+        .unwrap();
         let note_path = vault.path().join("note.md");
         fs::write(&note_path, "MY EDIT").unwrap();
 
@@ -300,8 +338,12 @@ mod tests {
         make_store(src.path(), &[("a", "Note", "body", false)]);
         let vault = TempDir::new().unwrap();
 
-        let (_, manifest) =
-            run_import(src.path(), vault.path(), &ImportManifest::new("apple-notes")).unwrap();
+        let (_, manifest) = run_import(
+            src.path(),
+            vault.path(),
+            &ImportManifest::new("apple-notes"),
+        )
+        .unwrap();
         fs::remove_file(vault.path().join("note.md")).unwrap();
 
         let (report, _) = run_import(src.path(), vault.path(), &manifest).unwrap();
@@ -316,11 +358,21 @@ mod tests {
     #[test]
     fn password_protected_notes_are_skipped() {
         let src = TempDir::new().unwrap();
-        make_store(src.path(), &[("a", "Open", "visible", false), ("b", "Locked", "secret", true)]);
+        make_store(
+            src.path(),
+            &[
+                ("a", "Open", "visible", false),
+                ("b", "Locked", "secret", true),
+            ],
+        );
         let vault = TempDir::new().unwrap();
 
-        let (report, _) =
-            run_import(src.path(), vault.path(), &ImportManifest::new("apple-notes")).unwrap();
+        let (report, _) = run_import(
+            src.path(),
+            vault.path(),
+            &ImportManifest::new("apple-notes"),
+        )
+        .unwrap();
 
         assert_eq!(report.imported, 1);
         assert_eq!(report.skipped.len(), 1);

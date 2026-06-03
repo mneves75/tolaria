@@ -151,7 +151,10 @@ fn date_expr(columns: &std::collections::HashSet<String>, candidates: &[&str]) -
         .unwrap_or_else(|| "NULL".to_string())
 }
 
-fn table_columns(conn: &Connection, table: &str) -> Result<std::collections::HashSet<String>, String> {
+fn table_columns(
+    conn: &Connection,
+    table: &str,
+) -> Result<std::collections::HashSet<String>, String> {
     // PRAGMA does not accept a bound parameter for the table name; the value is a
     // hardcoded constant, never user input.
     let mut stmt = conn
@@ -213,9 +216,7 @@ mod tests {
         // Writer holds the database open in WAL mode with autocheckpoint off, so
         // the row lives only in the -wal sidecar, never the main file.
         let writer = Connection::open(&db_path).unwrap();
-        writer
-            .pragma_update(None, "journal_mode", "WAL")
-            .unwrap();
+        writer.pragma_update(None, "journal_mode", "WAL").unwrap();
         writer.pragma_update(None, "wal_autocheckpoint", 0).unwrap();
         writer
             .execute("CREATE TABLE t (id INTEGER, v TEXT)", [])

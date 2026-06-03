@@ -80,7 +80,10 @@ mod tests {
     #[test]
     fn slugifies_like_native_notes() {
         let mut taken = fresh();
-        assert_eq!(unique_stem("Quarterly Plan: Q3", &mut taken), "quarterly-plan-q3");
+        assert_eq!(
+            unique_stem("Quarterly Plan: Q3", &mut taken),
+            "quarterly-plan-q3"
+        );
     }
 
     #[test]
