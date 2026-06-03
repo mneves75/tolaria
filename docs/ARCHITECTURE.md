@@ -954,7 +954,7 @@ Shortcut routing is explicit:
 
 ### Release Pipeline
 
-Every push to `main` triggers `.github/workflows/release.yml`:
+The release pipeline is owned by the canonical release repository (`refactoringhq/tolaria`). In that repository, every push to `main` triggers `.github/workflows/release.yml`:
 
 ```
 push to main
@@ -985,6 +985,8 @@ push to main
       → preserve stable/latest.json
       → deploy to gh-pages
 ```
+
+Forks and local mirrors can contain the same workflow files without producing release artifacts. A push to a fork's `main` is only push proof unless GitHub Actions shows a matching run for that fork and the repository has the required release secrets. Before claiming an alpha release, Pages update, or deploy from a local closeout, verify the remote owner, the pushed SHA, and the workflow run state with `gh run list --repo <owner>/tolaria --branch main`. Tolaria does not have a separate local staging deploy command; the deploy workflow in this repo publishes GitHub Pages as part of the docs/release channels, not an isolated staging environment.
 
 Stable promotions trigger `.github/workflows/release-stable.yml`:
 

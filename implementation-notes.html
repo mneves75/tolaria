@@ -54,6 +54,8 @@
       <li><code>pnpm test</code> under Vitest 4.1.8: 393 files, 4,340 tests passed.</li>
       <li><code>git diff --check</code>: passed.</li>
       <li><code>pnpm l10n:validate</code> initially failed because existing Apple Notes import keys were missing from every non-English catalog. <code>pnpm l10n:translate</code> was blocked by missing <code>LARA_ACCESS_KEY_ID</code> and <code>LARA_ACCESS_KEY_SECRET</code>. Added English fallback values for those keys in every target catalog; <code>pnpm l10n:validate</code> then passed for 18 catalogs and 758 English keys.</li>
+      <li>Follow-up improvement pass: rechecked <code>git remote -v</code>, <code>gh workflow view "Release (Alpha)" --repo mneves75/tolaria</code>, and <code>gh run list --repo mneves75/tolaria --branch main</code>. The fork has active workflow files but zero alpha runs, so release/deploy claims must stay scoped to push proof unless the canonical repo or a real workflow run is verified.</li>
+      <li>Updated <code>docs/ARCHITECTURE.md</code> to make canonical-vs-fork release behavior and absent staging deploy explicit. A broader <code>.github/workflows/README.md</code> cleanup was verified locally but could not be pushed because GitHub rejected workflow-path updates from the current OAuth app without <code>workflow</code> scope.</li>
     </ul>
 
     <h2>Confirmed Findings and Fixes</h2>
@@ -106,6 +108,7 @@
         <tr><td><code>git status --short -- demo-vault demo-vault-v2</code></td><td class="ok">No output; demo vault fixtures are clean.</td></tr>
         <tr><td><code>LLVM_COV="$(xcrun -f llvm-cov)" LLVM_PROFDATA="$(xcrun -f llvm-profdata)" git push origin main</code></td><td class="ok">Passed. The pre-push hook reran lint, build, frontend coverage, Rust lint, Rust coverage, Playwright smoke, and the CodeScene hook. CodeScene was skipped by the hook with <code>CODESCENE_PAT or CODESCENE_PROJECT_ID not set</code>; all executable gates passed and <code>b410c407</code> pushed to <code>origin/main</code>.</td></tr>
         <tr><td>Staging/deploy check</td><td>No dedicated staging script exists in <code>package.json</code>. This checkout pushes to fork <code>mneves75/tolaria</code>, whose workflows are active but report <code>Total runs 0</code> for <code>Release (Alpha)</code> and <code>gh run list --branch main</code> returned <code>[]</code>. The deploy workflow present in this repo is <code>Deploy docs</code>, which publishes GitHub Pages rather than a staging environment; no safe staging target was available to deploy.</td></tr>
+        <tr><td>Follow-up documentation hardening</td><td class="ok">Patched release docs so future closeouts verify remote owner, pushed SHA, and Actions run state before claiming alpha release, Pages deploy, or staging-equivalent proof. The first push attempt passed lint, build, frontend coverage, and 54 Playwright smoke tests, then GitHub rejected <code>.github/workflows/README.md</code> with <code>refusing to allow an OAuth App to create or update workflow `.github/workflows/README.md` without `workflow` scope</code>; the workflow-path change was removed from the final pushed commit.</td></tr>
       </tbody>
     </table>
 
